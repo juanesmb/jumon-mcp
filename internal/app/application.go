@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,6 +21,9 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
+
+//go:embed favicon.png
+var faviconPNG []byte
 
 func Start() {
 	cfg := config.Read()
@@ -55,6 +59,8 @@ func Start() {
 	mux.Handle(cfg.Server.Path, protected)
 	mux.HandleFunc(metadataPath, oauthProtectedResourceHandler(cfg))
 	mux.HandleFunc(metadataPath+cfg.Server.Path, oauthProtectedResourceHandler(cfg))
+	mux.HandleFunc("/favicon.ico", faviconHandler)
+	mux.HandleFunc("/favicon.png", faviconHandler)
 
 	httpServer := &http.Server{
 		Handler: middleware.LoggingHandler(mux),
@@ -120,6 +126,13 @@ func oauthProtectedResourceHandler(cfg config.Config) http.HandlerFunc {
 			http.Error(w, "failed to write metadata response", http.StatusInternalServerError)
 		}
 	}
+}
+
+func faviconHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(faviconPNG)
 }
 
 func appendURLPath(baseURL, path string) string {
