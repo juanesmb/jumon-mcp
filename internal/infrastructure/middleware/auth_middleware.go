@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -22,7 +22,13 @@ func RequireBearerAuth(verifier TokenVerifier, resourceMetadataURL, requiredScop
 		authHeader := r.Header.Get("Authorization")
 		token := extractBearerToken(authHeader)
 		if debugAuth {
-			log.Printf("[AUTH] %s %s remote=%s has_header=%t token_len=%d", r.Method, r.URL.Path, r.RemoteAddr, authHeader != "", len(token))
+			slog.WarnContext(r.Context(), "mcp_debug_auth",
+				"http.method", r.Method,
+				"http.path", r.URL.Path,
+				"remote_addr", r.RemoteAddr,
+				"has_authorization_header", authHeader != "",
+				"bearer_token_len", len(token),
+			)
 		}
 
 		if token == "" {
@@ -33,7 +39,10 @@ func RequireBearerAuth(verifier TokenVerifier, resourceMetadataURL, requiredScop
 		userID, err := verifier.Verify(r.Context(), token)
 		if err != nil {
 			if debugAuth {
-				log.Printf("[AUTH] verify failed: %v | claims=%s", err, security.PeekUnverifiedClaims(token))
+				slog.WarnContext(r.Context(), "mcp_debug_auth_verify_failed",
+					"error", err.Error(),
+					"claims_peek", security.PeekUnverifiedClaims(token),
+				)
 			}
 			writeUnauthorized(w, resourceMetadataURL, requiredScope, err.Error())
 			return

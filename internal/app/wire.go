@@ -3,11 +3,13 @@ package app
 import (
 	_ "embed"
 	"log"
+	stdhttp "net/http"
 	"strings"
 
 	"jumon-mcp/internal/config"
 	"jumon-mcp/internal/infrastructure/gateway"
 	infrahttp "jumon-mcp/internal/infrastructure/http"
+	"jumon-mcp/internal/infrastructure/observability"
 	"jumon-mcp/internal/provider/googleads"
 	"jumon-mcp/internal/provider/linkedin"
 	"jumon-mcp/internal/provider/registry"
@@ -16,6 +18,7 @@ import (
 	executionusecase "jumon-mcp/internal/usecase/execution"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 //go:embed instructions/server_instructions.md
@@ -25,8 +28,11 @@ type components struct {
 	facadeTools *mcptransport.FacadeTools
 }
 
-func initComponents(cfg config.Config) (*components, error) {
-	httpClient := infrahttp.NewClient(nil)
+func initComponents(cfg config.Config, rec *observability.Recorder) (*components, error) {
+	otelRT := otelhttp.NewTransport(stdhttp.DefaultTransport)
+	outboundTransport := rec.HTTPTransport(otelRT)
+
+	httpClient := infrahttp.NewClient(nil, outboundTransport)
 	gatewayClient := gateway.NewClient(httpClient, cfg.Gateway.BaseURL, cfg.Gateway.InternalSecret, cfg.Gateway.ConnectURL)
 	connectionReader := registry.NewGatewayConnectionReader(gatewayClient)
 
@@ -38,9 +44,11 @@ func initComponents(cfg config.Config) (*components, error) {
 		return nil, err
 	}
 
-	catalogService := catalogusecase.NewService(toolRegistry)
-	executionService := executionusecase.NewService(toolRegistry)
-	facadeTools := mcptransport.NewFacadeTools(catalogService, executionService)
+	instrumented := observability.NewObservableRegistry(toolRegistry, rec)
+
+	catalogService := catalogusecase.NewService(instrumented)
+	executionService := executionusecase.NewService(instrumented)
+	facadeTools := mcptransport.NewFacadeTools(catalogService, executionService, rec)
 
 	return &components{
 		facadeTools: facadeTools,

@@ -22,6 +22,22 @@ Optional:
 - `PORT` (default `8080`)
 - `MCP_DEBUG_AUTH` (`true` to enable verbose auth logs)
 - `GOOGLE_ADS_API_VERSION` (default `v22`)
+- `USER_ID_HASH_SALT` — optional salt combined with hashed Clerk identifiers for correlated `user.hash` fields without logging raw JWT subjects.
+
+GCP / OpenTelemetry knobs (omit or disable when developing without Cloud exporters):
+
+- `GOOGLE_CLOUD_PROJECT` / `GCP_PROJECT` — used for stdout log fields such as `logging.googleapis.com/trace` so entries join Cloud Trace.
+- `OBSERVABILITY_ENABLED` — set to `false` to silence Cloud Trace + Cloud Monitoring export while retaining structured slog JSON logs.
+- `OTEL_SERVICE_NAME` — resource `service.name` (default `jumon-mcp`).
+- `OBSERVABILITY_TRACE_SAMPLE_RATIO` — `0..1` ratio for probabilistic sampling of new trace IDs.
+
+## Google Cloud IAM (production)
+
+Cloud Run workloads should attach a service principal with **`roles/cloudtrace.agent`** plus **`roles/monitoring.metricWriter`** (or narrower equivalents that still allow exporting spans/custom metrics).
+
+## Verification (observability)
+
+After traffic, validate **Structured JSON logs** in Cloud Logging (`event=http_request`, `event=http_upstream`, `severity`). Open **Cloud Trace** to confirm spans: outer HTTP span wrapping `mcp.tool.explore` / nested `mcp.tool.execute`. In **Metrics Explorer**, allow a couple of minutes for OTel-derived series (names include the `mcp_*` prefixes emitted via the Google metric exporter).
 
 ## Run locally
 

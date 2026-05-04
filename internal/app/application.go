@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -17,9 +18,11 @@ import (
 
 	"jumon-mcp/internal/config"
 	"jumon-mcp/internal/infrastructure/middleware"
+	"jumon-mcp/internal/infrastructure/observability"
 	"jumon-mcp/internal/infrastructure/security"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 //go:embed favicon.png
@@ -28,7 +31,21 @@ var faviconPNG []byte
 func Start() {
 	cfg := config.Read()
 
-	components, err := initComponents(cfg)
+	observability.ConfigureGlobalLogger()
+
+	rec, shutdownTelemetry, err := observability.Setup(context.Background(), cfg.Observability)
+	if err != nil {
+		log.Fatalf("telemetry: %v", err)
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+		defer cancel()
+		if shutdownErr := shutdownTelemetry(ctx); shutdownErr != nil {
+			slog.Error("telemetry_shutdown", "error", shutdownErr.Error())
+		}
+	}()
+
+	components, err := initComponents(cfg, rec)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -62,15 +79,17 @@ func Start() {
 	mux.HandleFunc("/favicon.ico", faviconHandler)
 	mux.HandleFunc("/favicon.png", faviconHandler)
 
+	handlerChain := otelhttp.NewMiddleware("jumon-mcp")(middleware.LoggingHandler(mux, cfg.Observability.GCPProjectID))
+
 	httpServer := &http.Server{
-		Handler: middleware.LoggingHandler(mux),
+		Handler: handlerChain,
 	}
 
 	listener, err := net.Listen("tcp", cfg.Server.BindAddress)
 	if err != nil {
 		log.Fatalf("listen %s: %v", cfg.Server.BindAddress, err)
 	}
-	log.Printf("Jumon MCP facade listening on %s (path %s)", listener.Addr().String(), cfg.Server.Path)
+	slog.Info("listen", "address", listener.Addr().String(), "path", cfg.Server.Path)
 
 	shutdownCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -87,7 +106,7 @@ func Start() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := httpServer.Shutdown(ctx); err != nil {
-			log.Printf("graceful shutdown failed: %v", err)
+			slog.Error("http_shutdown_failed", "error", err.Error())
 		}
 	case err := <-serverErrCh:
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
