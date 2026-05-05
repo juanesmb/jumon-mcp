@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -14,9 +15,7 @@ import (
 	"jumon-mcp/internal/provider/registry"
 )
 
-const (
-	platformName = "linkedin"
-)
+const platformName = "linkedin"
 
 func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error {
 	tools := []registry.ToolDefinition{
@@ -91,13 +90,18 @@ func listAdAccountsExecutor(gatewayClient *gateway.Client) registry.Executor {
 	}
 }
 
+const (
+	defaultCampaignsPageSize = 100
+	maxAutoPaginatePages     = 20
+)
+
 func getCampaignsExecutor(gatewayClient *gateway.Client) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		accountID := strings.TrimSpace(toString(params["account_id"]))
 		if accountID == "" {
 			return nil, fmt.Errorf("account_id is required")
 		}
-		path := fmt.Sprintf("adAccounts/%s/adCampaigns", url.PathEscape(accountID))
+		apiPath := fmt.Sprintf("adAccounts/%s/adCampaigns", url.PathEscape(accountID))
 		query := map[string]string{"q": "search"}
 		appendListFinder(query, "status", toStringSlice(params["status_filter"]))
 		appendListFinder(query, "campaignGroup", toCampaignGroupURNs(params["campaign_group_filter"]))
@@ -109,13 +113,61 @@ func getCampaignsExecutor(gatewayClient *gateway.Client) registry.Executor {
 		if sortOrder := strings.TrimSpace(toString(params["sort_order"])); sortOrder != "" {
 			query["sortOrder"] = sortOrder
 		}
-		if pageSize, ok := toInt(params["page_size"]); ok && pageSize > 0 {
-			query["pageSize"] = strconv.Itoa(pageSize)
+
+		// Caller may request a single page explicitly by setting auto_paginate=false.
+		autoPageBool, hasAutoPage := params["auto_paginate"].(bool)
+		autoPaginate := !hasAutoPage || autoPageBool
+
+		pageSize := defaultCampaignsPageSize
+		if ps, ok := toInt(params["page_size"]); ok && ps > 0 {
+			pageSize = ps
 		}
+		query["pageSize"] = strconv.Itoa(pageSize)
+
+		// When the caller provides an explicit page_token they want one page only.
 		if token := strings.TrimSpace(toString(params["page_token"])); token != "" {
 			query["pageToken"] = token
+			autoPaginate = false
 		}
-		return proxyLinkedInJSON(ctx, gatewayClient, userID, "GET", path, query, nil, nil)
+
+		if !autoPaginate {
+			return proxyLinkedInJSON(ctx, gatewayClient, userID, "GET", apiPath, query, nil, nil)
+		}
+
+		allElements := make([]any, 0)
+		var lastMeta map[string]any
+
+		for range maxAutoPaginatePages {
+			raw, err := proxyLinkedInJSON(ctx, gatewayClient, userID, "GET", apiPath, query, nil, nil)
+			if err != nil {
+				return nil, err
+			}
+
+			pageMap, ok := raw.(map[string]any)
+			if !ok {
+				return raw, nil
+			}
+
+			if elements, ok := pageMap["elements"].([]any); ok {
+				allElements = append(allElements, elements...)
+			}
+			if meta, ok := pageMap["metadata"].(map[string]any); ok {
+				lastMeta = meta
+			}
+
+			nextToken, _ := lastMeta["nextPageToken"].(string)
+			if nextToken == "" {
+				break
+			}
+			query["pageToken"] = nextToken
+		}
+
+		result := map[string]any{"elements": allElements}
+		if lastMeta != nil {
+			delete(lastMeta, "nextPageToken")
+			result["metadata"] = lastMeta
+		}
+		return result, nil
 	}
 }
 
@@ -155,6 +207,9 @@ func getAnalyticsExecutor(gatewayClient *gateway.Client) registry.Executor {
 			query["timeGranularity"] = granularity
 		}
 		if fields := toStringSlice(params["fields"]); len(fields) > 0 {
+			if len(pivots) > 0 && !slices.Contains(fields, "pivotValues") {
+				fields = append([]string{"pivotValues"}, fields...)
+			}
 			query["fields"] = strings.Join(fields, ",")
 		}
 		if campaignIDs := toStringSlice(params["campaign_ids"]); len(campaignIDs) > 0 {
@@ -419,15 +474,51 @@ func getCampaignsSchema() map[string]any {
 			"account_id",
 		},
 		"properties": map[string]any{
-			"account_id":            map[string]any{"type": "string"},
-			"campaign_group_filter": map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-			"status_filter":         map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-			"type_filter":           map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-			"name_filter":           map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-			"test_filter":           map[string]any{"type": "boolean"},
-			"sort_order":            map[string]any{"type": "string", "enum": []string{"ASCENDING", "DESCENDING"}},
-			"page_size":             map[string]any{"type": "number"},
-			"page_token":            map[string]any{"type": "string"},
+			"account_id": map[string]any{
+				"type":        "string",
+				"description": "Numeric LinkedIn ad account ID (without the 'urn:li:sponsoredAccount:' prefix).",
+			},
+			"status_filter": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Limit results to campaigns with these statuses. Valid values: ACTIVE, PAUSED, ARCHIVED, COMPLETED, CANCELED, DRAFT, PENDING_DELETION, REMOVED. Omit to return all statuses.",
+			},
+			"campaign_group_filter": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Numeric campaign group IDs or full URNs (urn:li:sponsoredCampaignGroup:<id>) to scope results.",
+			},
+			"type_filter": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Campaign types to include, e.g. TEXT_AD, SPONSORED_UPDATES, SPONSORED_INMAILS.",
+			},
+			"name_filter": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Exact campaign names to match.",
+			},
+			"test_filter": map[string]any{
+				"type":        "boolean",
+				"description": "Set true to return only test campaigns; false for live campaigns.",
+			},
+			"sort_order": map[string]any{
+				"type":        "string",
+				"enum":        []string{"ASCENDING", "DESCENDING"},
+				"description": "Sort direction by campaign ID. DESCENDING (default) returns newest campaigns first.",
+			},
+			"auto_paginate": map[string]any{
+				"type":        "boolean",
+				"description": "When true (default), automatically follows nextPageToken to fetch ALL campaigns across multiple pages. Set to false to get only one page. Always use true when building reports to avoid missing campaigns.",
+			},
+			"page_size": map[string]any{
+				"type":        "number",
+				"description": "Results per page (default 100, max 100). Only relevant when auto_paginate is false.",
+			},
+			"page_token": map[string]any{
+				"type":        "string",
+				"description": "Pagination cursor from a previous response. Setting this disables auto_paginate.",
+			},
 		},
 	}
 }
@@ -441,18 +532,62 @@ func getAnalyticsSchema() map[string]any {
 			"pivots",
 		},
 		"properties": map[string]any{
-			"finder_type":        map[string]any{"type": "string", "enum": []string{"analytics", "statistics", "attributedRevenueMetrics"}},
-			"pivots":             map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-			"date_range_start":   map[string]any{"type": "string"},
-			"date_range_end":     map[string]any{"type": "string"},
-			"time_granularity":   map[string]any{"type": "string", "enum": []string{"ALL", "DAILY", "MONTHLY", "YEARLY"}},
-			"account_id":         map[string]any{"type": "string"},
-			"campaign_group_ids": map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-			"campaign_ids":       map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-			"creative_ids":       map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-			"fields":             map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-			"sort_by_field":      map[string]any{"type": "string"},
-			"sort_by_order":      map[string]any{"type": "string", "enum": []string{"ASCENDING", "DESCENDING"}},
+			"account_id": map[string]any{
+				"type":        "string",
+				"description": "Numeric LinkedIn ad account ID.",
+			},
+			"date_range_start": map[string]any{
+				"type":        "string",
+				"description": "Inclusive start date in YYYY-MM-DD format.",
+			},
+			"date_range_end": map[string]any{
+				"type":        "string",
+				"description": "Inclusive end date in YYYY-MM-DD format. Defaults to today when omitted.",
+			},
+			"pivots": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Grouping dimension(s). Common values: CAMPAIGN, CAMPAIGN_GROUP, CREATIVE, COMPANY, MEMBER_COMPANY_SIZE, MEMBER_INDUSTRY, MEMBER_SENIORITY. Only the first pivot value is used. When pivoting by CAMPAIGN, each row's pivotValues field contains the campaign URN — pivotValues is always included automatically.",
+			},
+			"time_granularity": map[string]any{
+				"type":        "string",
+				"enum":        []string{"ALL", "DAILY", "MONTHLY", "YEARLY"},
+				"description": "Time bucketing. Use ALL for a single aggregate row per pivot entity, DAILY for day-by-day breakdown.",
+			},
+			"finder_type": map[string]any{
+				"type":        "string",
+				"enum":        []string{"analytics", "statistics", "attributedRevenueMetrics"},
+				"description": "LinkedIn finder to use. 'analytics' covers standard metrics (default). 'statistics' returns reach and frequency data.",
+			},
+			"campaign_group_ids": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Numeric campaign group IDs to scope results.",
+			},
+			"campaign_ids": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Numeric campaign IDs to scope results. Use this to query specific campaigns individually when the full account list is large.",
+			},
+			"creative_ids": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Numeric creative IDs to scope results.",
+			},
+			"fields": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Metric fields to return, e.g. impressions, clicks, spend, costInLocalCurrency, videoViews, landingPageClicks, likes, comments, shares, follows, companyPageClicks, totalEngagements, leadGenerationMailContactInfoShares. Omit to return all fields. Note: pivotValues is always injected automatically when pivots are set.",
+			},
+			"sort_by_field": map[string]any{
+				"type":        "string",
+				"description": "Metric field name to sort results by, e.g. spend.",
+			},
+			"sort_by_order": map[string]any{
+				"type":        "string",
+				"enum":        []string{"ASCENDING", "DESCENDING"},
+				"description": "Sort direction (default DESCENDING).",
+			},
 		},
 	}
 }
