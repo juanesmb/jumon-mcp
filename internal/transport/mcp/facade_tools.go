@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"jumon-mcp/internal/domain/catalog"
 	"jumon-mcp/internal/infrastructure/middleware"
+	"jumon-mcp/internal/infrastructure/observability"
 	catalogusecase "jumon-mcp/internal/usecase/catalog"
 	executionusecase "jumon-mcp/internal/usecase/execution"
 
@@ -16,12 +18,17 @@ import (
 type FacadeTools struct {
 	catalogService   *catalogusecase.Service
 	executionService *executionusecase.Service
+	rec              *observability.Recorder
 }
 
-func NewFacadeTools(catalogService *catalogusecase.Service, executionService *executionusecase.Service) *FacadeTools {
+func NewFacadeTools(catalogService *catalogusecase.Service, executionService *executionusecase.Service, rec *observability.Recorder) *FacadeTools {
+	if rec == nil {
+		panic("mcptransport: FacadeTools requires non-nil observability Recorder")
+	}
 	return &FacadeTools{
 		catalogService:   catalogService,
 		executionService: executionService,
+		rec:              rec,
 	}
 }
 
@@ -42,10 +49,22 @@ func (f *FacadeTools) ExplorePlatform(ctx context.Context, req *mcp.CallToolRequ
 		return &mcp.CallToolResult{}, catalogusecase.ExploreOutput{}, fmt.Errorf("missing authenticated user in request context")
 	}
 
-	output, err := f.catalogService.Explore(ctx, userID, catalogusecase.ExploreInput{
+	mode := observability.ExploreMode(input.Platform, input.ToolNames)
+	ctxSpan, span := f.rec.StartExploreSpan(ctx, userID, mode)
+	start := time.Now()
+
+	output, err := f.catalogService.Explore(ctxSpan, userID, catalogusecase.ExploreInput{
 		Platform:  input.Platform,
 		ToolNames: input.ToolNames,
 	})
+
+	outcome := "success"
+	if err != nil {
+		outcome = "error"
+	}
+	ms := float64(time.Since(start).Milliseconds())
+	f.rec.RecordExplore(ctxSpan, mode, outcome, ms)
+	observability.FinishSpan(span, err)
 	if err != nil {
 		return &mcp.CallToolResult{}, catalogusecase.ExploreOutput{}, err
 	}
@@ -65,6 +84,7 @@ func (f *FacadeTools) ExecutePlatformTool(ctx context.Context, req *mcp.CallTool
 	})
 	if err != nil {
 		if notConnected, ok := err.(*catalog.PlatformNotConnectedError); ok {
+			f.rec.RecordPlatformNotConnected(ctx, notConnected.Platform)
 			result := map[string]any{
 				"error":       "platform_not_connected",
 				"platform":    notConnected.Platform,

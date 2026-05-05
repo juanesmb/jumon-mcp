@@ -34,13 +34,20 @@ type Client struct {
 	client *stdhttp.Client
 }
 
-func NewClient(config *Config) *Client {
+func NewClient(config *Config, transport stdhttp.RoundTripper) *Client {
 	if config == nil {
 		config = DefaultConfig()
 	}
+	rt := transport
+	if rt == nil {
+		rt = stdhttp.DefaultTransport
+	}
 	return &Client{
 		config: config,
-		client: &stdhttp.Client{Timeout: config.Timeout},
+		client: &stdhttp.Client{
+			Timeout:   config.Timeout,
+			Transport: rt,
+		},
 	}
 }
 
@@ -77,7 +84,7 @@ func (c *Client) do(ctx context.Context, method, url string, body any, headers m
 			req.Header.Set(k, v)
 		}
 
-		resp, err := c.client.Do(req)
+		resp, err := c.client.Do(req.WithContext(ContextWithAttempt(ctx, attempt+1)))
 		if err != nil {
 			lastErr = fmt.Errorf("perform request: %w", err)
 			if attempt < c.config.MaxRetries {

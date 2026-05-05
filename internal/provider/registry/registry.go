@@ -151,6 +151,15 @@ func (r *Registry) LoadSchemas(ctx context.Context, userID string, toolNames []s
 	return out, nil
 }
 
+// PlatformForTool returns the canonical platform identifier for the tool, if registered.
+func (r *Registry) PlatformForTool(toolName string) (string, bool) {
+	definition, ok := r.tools[strings.TrimSpace(toolName)]
+	if !ok {
+		return "", false
+	}
+	return definition.Platform, true
+}
+
 func (r *Registry) Execute(ctx context.Context, userID, toolName string, params map[string]any) (catalog.ToolExecutionResult, error) {
 	definition, ok := r.tools[strings.TrimSpace(toolName)]
 	if !ok {

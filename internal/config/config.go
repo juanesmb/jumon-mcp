@@ -7,9 +7,10 @@ import (
 )
 
 type Config struct {
-	Server  ServerConfig
-	Auth    AuthConfig
-	Gateway GatewayConfig
+	Server        ServerConfig
+	Auth          AuthConfig
+	Gateway       GatewayConfig
+	Observability ObservabilityConfig
 }
 
 type ServerConfig struct {
@@ -34,6 +35,15 @@ type GatewayConfig struct {
 	ConnectURL         string
 	LinkedInAPIBaseURL string
 	GoogleAPIVersion   string
+}
+
+// ObservabilityConfig controls OpenTelemetry exporters (Cloud Trace / Cloud Monitoring) and log correlation fields.
+type ObservabilityConfig struct {
+	Enabled          bool
+	GCPProjectID     string
+	ServiceName      string
+	TraceSampleRatio float64
+	UserIDHashSalt   string
 }
 
 func Read() Config {
@@ -61,6 +71,11 @@ func Read() Config {
 		googleAPIVersion = "v22"
 	}
 
+	gcpProject := strings.TrimSpace(os.Getenv("GOOGLE_CLOUD_PROJECT"))
+	if gcpProject == "" {
+		gcpProject = strings.TrimSpace(os.Getenv("GCP_PROJECT"))
+	}
+
 	return Config{
 		Server: ServerConfig{
 			BindAddress: fmt.Sprintf("%s:%s", host, port),
@@ -83,7 +98,57 @@ func Read() Config {
 			LinkedInAPIBaseURL: linkedInBaseURL,
 			GoogleAPIVersion:   googleAPIVersion,
 		},
+		Observability: readObservabilityConfig(gcpProject),
 	}
+}
+
+func readObservabilityConfig(gcpProjectFromEnv string) ObservabilityConfig {
+	enabledOverride := strings.TrimSpace(os.Getenv("OBSERVABILITY_ENABLED"))
+
+	serviceName := strings.TrimSpace(os.Getenv("OTEL_SERVICE_NAME"))
+	if serviceName == "" {
+		serviceName = "jumon-mcp"
+	}
+
+	sampleRatio := 1.0
+	if raw := strings.TrimSpace(os.Getenv("OBSERVABILITY_TRACE_SAMPLE_RATIO")); raw != "" {
+		if v, err := parsePositiveFloat(raw); err == nil && v >= 0 && v <= 1 {
+			sampleRatio = v
+		}
+	}
+
+	gcpProject := gcpProjectFromEnv
+	if gcpProject == "" {
+		gcpProject = strings.TrimSpace(os.Getenv("GOOGLE_CLOUD_PROJECT"))
+	}
+	if gcpProject == "" {
+		gcpProject = strings.TrimSpace(os.Getenv("GCP_PROJECT"))
+	}
+
+	enabledDefault := false
+	switch strings.ToLower(enabledOverride) {
+	case "1", "true", "yes", "on":
+		enabledDefault = true
+	case "0", "false", "no", "off":
+		enabledDefault = false
+	default:
+		// On Cloud Run a project ID is normally present; enabling avoids silent no-export surprises.
+		enabledDefault = gcpProject != ""
+	}
+
+	return ObservabilityConfig{
+		Enabled:          enabledDefault,
+		GCPProjectID:     gcpProject,
+		ServiceName:      serviceName,
+		TraceSampleRatio: sampleRatio,
+		UserIDHashSalt:   strings.TrimSpace(os.Getenv("USER_ID_HASH_SALT")),
+	}
+}
+
+func parsePositiveFloat(raw string) (float64, error) {
+	var v float64
+	_, err := fmt.Sscanf(raw, "%f", &v)
+	return v, err
 }
 
 func gatewayBaseURL() string {
