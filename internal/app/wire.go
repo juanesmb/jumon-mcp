@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/base64"
 	_ "embed"
 	"log"
 	stdhttp "net/http"
@@ -60,6 +61,7 @@ func initServer(components *components) *mcp.Server {
 		Name:    "Jumon",
 		Version: "v1.0.0",
 		Title:   "Jumon MCP Facade",
+		Icons: implementationIcons(),
 	}, &mcp.ServerOptions{
 		Instructions: loadServerInstructions(),
 	})
@@ -75,6 +77,20 @@ func initServer(components *components) *mcp.Server {
 	}, components.facadeTools.ExecutePlatformTool)
 
 	return server
+}
+
+func implementationIcons() []mcp.Icon {
+	// MCP clients read server visuals from Implementation.icons (initialize),
+	// not from HTTP favicons. Pattern per go-sdk/examples/server/everything.
+	dataLen := len(faviconPNG)
+	if dataLen == 0 {
+		return nil
+	}
+	return []mcp.Icon{{
+		Source:   "data:image/png;base64," + base64.StdEncoding.EncodeToString(faviconPNG),
+		MIMEType: "image/png",
+		Sizes:    []string{"512x512"},
+	}}
 }
 
 func loadServerInstructions() string {
