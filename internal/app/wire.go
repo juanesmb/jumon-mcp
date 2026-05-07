@@ -13,6 +13,7 @@ import (
 	"jumon-mcp/internal/infrastructure/observability"
 	"jumon-mcp/internal/provider/googleads"
 	"jumon-mcp/internal/provider/linkedin"
+	"jumon-mcp/internal/provider/reddit"
 	"jumon-mcp/internal/provider/registry"
 	mcptransport "jumon-mcp/internal/transport/mcp"
 	catalogusecase "jumon-mcp/internal/usecase/catalog"
@@ -42,6 +43,9 @@ func initComponents(cfg config.Config, rec *observability.Recorder) (*components
 		return nil, err
 	}
 	if err := googleads.RegisterTools(toolRegistry, gatewayClient, googleads.Config{APIVersion: cfg.Gateway.GoogleAPIVersion}); err != nil {
+		return nil, err
+	}
+	if err := reddit.RegisterTools(toolRegistry, gatewayClient); err != nil {
 		return nil, err
 	}
 
