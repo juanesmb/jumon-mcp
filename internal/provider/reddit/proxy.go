@@ -13,17 +13,19 @@ import (
 
 const platformName = "reddit"
 
-// redditGETPort is the outbound Reddit gateway abstraction (application depends on this, not *gateway.Client).
-type redditGETPort interface {
+// redditUpstreamPort is the outbound Reddit gateway abstraction (application depends on this, not *gateway.Client).
+type redditUpstreamPort interface {
 	getWithRefresh(ctx context.Context, userID, path string, query map[string]string) (json.RawMessage, error)
 	get(ctx context.Context, userID, path string, query map[string]string) (json.RawMessage, error)
+	postJSONWithRefresh(ctx context.Context, userID, path string, query map[string]string, body any) (json.RawMessage, error)
+	postJSON(ctx context.Context, userID, path string, query map[string]string, body any) (json.RawMessage, error)
 }
 
 type redditGateway struct {
 	client *gateway.Client
 }
 
-func newRedditGateway(c *gateway.Client) redditGETPort {
+func newRedditGateway(c *gateway.Client) redditUpstreamPort {
 	return &redditGateway{client: c}
 }
 
@@ -34,6 +36,16 @@ func (r *redditGateway) getWithRefresh(ctx context.Context, userID, path string,
 
 func (r *redditGateway) get(ctx context.Context, userID, path string, query map[string]string) (json.RawMessage, error) {
 	resp, err := r.client.ProxyProvider(ctx, platformName, userID, "GET", path, query, nil, nil)
+	return decodeRedditProxy(resp, err, r.client)
+}
+
+func (r *redditGateway) postJSONWithRefresh(ctx context.Context, userID, path string, query map[string]string, body any) (json.RawMessage, error) {
+	resp, err := r.client.ProxyProviderOrRefresh(ctx, platformName, userID, "POST", path, query, body, nil)
+	return decodeRedditProxy(resp, err, r.client)
+}
+
+func (r *redditGateway) postJSON(ctx context.Context, userID, path string, query map[string]string, body any) (json.RawMessage, error) {
+	resp, err := r.client.ProxyProvider(ctx, platformName, userID, "POST", path, query, body, nil)
 	return decodeRedditProxy(resp, err, r.client)
 }
 

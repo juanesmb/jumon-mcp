@@ -16,3 +16,11 @@ const (
 func pathBusinessAdAccounts(businessID string) string {
 	return fmt.Sprintf("businesses/%s/ad_accounts", url.PathEscape(businessID))
 }
+
+func pathAdAccountCampaigns(adAccountID string) string {
+	return fmt.Sprintf("ad_accounts/%s/campaigns", url.PathEscape(adAccountID))
+}
+
+func pathAdAccountReports(adAccountID string) string {
+	return fmt.Sprintf("ad_accounts/%s/reports", url.PathEscape(adAccountID))
+}
