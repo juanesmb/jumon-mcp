@@ -46,6 +46,36 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error 
 			Execute:            listCampaignsExecutor(svc),
 		},
 		{
+			Name:               "reddit_list_ad_groups",
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Lists Reddit Ads ad groups under one ad account.",
+			Description:        "Calls GET ad_accounts/{ad_account_id}/ad_groups. Requires ad_account_id from reddit_list_ad_accounts. Optional campaign_id filters by campaign. Uses Reddit pagination (page_token, page.size). Reddit id[] filters for ad groups are not passed through this tool until the gateway supports repeated query keys.",
+			InputSchema:        listAdGroupsSchema(),
+			RequiresConnection: true,
+			Execute:            listAdGroupsExecutor(svc),
+		},
+		{
+			Name:               "reddit_list_ads",
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Lists Reddit Ads under one ad account.",
+			Description:        "Calls GET ad_accounts/{ad_account_id}/ads. Requires ad_account_id from reddit_list_ad_accounts. Uses Reddit pagination (page_token, page.size). Reddit id[] ad filters are not passed through this tool until the gateway supports repeated query keys.",
+			InputSchema:        listAdsSchema(),
+			RequiresConnection: true,
+			Execute:            listAdsExecutor(svc),
+		},
+		{
+			Name:               "reddit_list_funding_instruments",
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Lists funding instruments for one Reddit Ads account.",
+			Description:        "Calls GET ad_accounts/{ad_account_id}/funding_instruments. Requires ad_account_id from reddit_list_ad_accounts. Optional start_time, end_time (ISO 8601), mode (ACTIVE, INACTIVE, UPCOMING, SELECTABLE, ALL), and search. Uses Reddit pagination. Billing rate limit is stricter (~30 requests per 60 seconds per Reddit docs). Array query filters (funding_instrument_ids, types) are not passed through until the gateway supports repeated query keys.",
+			InputSchema:        listFundingInstrumentsSchema(),
+			RequiresConnection: true,
+			Execute:            listFundingInstrumentsExecutor(svc),
+		},
+		{
 			Name:               "reddit_get_report",
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
@@ -112,6 +142,62 @@ func listCampaignsExecutor(svc *service) registry.Executor {
 		}
 		adAccountID := strings.TrimSpace(toString(params["ad_account_id"]))
 		raw, err := svc.listCampaignsForAdAccount(ctx, userID, adAccountID, in)
+		if err != nil {
+			return nil, err
+		}
+		return unmarshalPayload(raw)
+	}
+}
+
+func listAdGroupsExecutor(svc *service) registry.Executor {
+	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
+		in := listAdGroupsInput{
+			pageToken:  strings.TrimSpace(toString(params["page_token"])),
+			campaignID: strings.TrimSpace(toString(params["campaign_id"])),
+		}
+		if ps, ok := toInt(params["page_size"]); ok && ps > 0 {
+			in.pageSize = ps
+		}
+		adAccountID := strings.TrimSpace(toString(params["ad_account_id"]))
+		raw, err := svc.listAdGroupsForAdAccount(ctx, userID, adAccountID, in)
+		if err != nil {
+			return nil, err
+		}
+		return unmarshalPayload(raw)
+	}
+}
+
+func listAdsExecutor(svc *service) registry.Executor {
+	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
+		in := listAdsInput{
+			pageToken: strings.TrimSpace(toString(params["page_token"])),
+		}
+		if ps, ok := toInt(params["page_size"]); ok && ps > 0 {
+			in.pageSize = ps
+		}
+		adAccountID := strings.TrimSpace(toString(params["ad_account_id"]))
+		raw, err := svc.listAdsForAdAccount(ctx, userID, adAccountID, in)
+		if err != nil {
+			return nil, err
+		}
+		return unmarshalPayload(raw)
+	}
+}
+
+func listFundingInstrumentsExecutor(svc *service) registry.Executor {
+	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
+		in := listFundingInstrumentsInput{
+			pageToken: strings.TrimSpace(toString(params["page_token"])),
+			startTime: strings.TrimSpace(toString(params["start_time"])),
+			endTime:   strings.TrimSpace(toString(params["end_time"])),
+			mode:      strings.TrimSpace(toString(params["mode"])),
+			search:    strings.TrimSpace(toString(params["search"])),
+		}
+		if ps, ok := toInt(params["page_size"]); ok && ps > 0 {
+			in.pageSize = ps
+		}
+		adAccountID := strings.TrimSpace(toString(params["ad_account_id"]))
+		raw, err := svc.listFundingInstrumentsForAdAccount(ctx, userID, adAccountID, in)
 		if err != nil {
 			return nil, err
 		}
@@ -205,6 +291,89 @@ func listCampaignsSchema() map[string]any {
 			"ad_account_id": map[string]any{
 				"type":        "string",
 				"description": "Reddit ad account id from reddit_list_ad_accounts (typically data[].id).",
+			},
+			"page_size": map[string]any{
+				"type":        "number",
+				"description": "Mapped to Reddit page.size (default 100, max 1000).",
+			},
+			"page_token": map[string]any{
+				"type":        "string",
+				"description": "Mapped to Reddit page.token (pagination).",
+			},
+		},
+	}
+}
+
+func listAdGroupsSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"ad_account_id"},
+		"properties": map[string]any{
+			"ad_account_id": map[string]any{
+				"type":        "string",
+				"description": "Reddit ad account id from reddit_list_ad_accounts.",
+			},
+			"campaign_id": map[string]any{
+				"type":        "string",
+				"description": "Optional. Filter ad groups by campaign id.",
+			},
+			"page_size": map[string]any{
+				"type":        "number",
+				"description": "Mapped to Reddit page.size (default 100, max 1000).",
+			},
+			"page_token": map[string]any{
+				"type":        "string",
+				"description": "Mapped to Reddit page.token (pagination).",
+			},
+		},
+	}
+}
+
+func listAdsSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"ad_account_id"},
+		"properties": map[string]any{
+			"ad_account_id": map[string]any{
+				"type":        "string",
+				"description": "Reddit ad account id from reddit_list_ad_accounts.",
+			},
+			"page_size": map[string]any{
+				"type":        "number",
+				"description": "Mapped to Reddit page.size (default 100, max 1000).",
+			},
+			"page_token": map[string]any{
+				"type":        "string",
+				"description": "Mapped to Reddit page.token (pagination).",
+			},
+		},
+	}
+}
+
+func listFundingInstrumentsSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"ad_account_id"},
+		"properties": map[string]any{
+			"ad_account_id": map[string]any{
+				"type":        "string",
+				"description": "Reddit ad account id from reddit_list_ad_accounts.",
+			},
+			"start_time": map[string]any{
+				"type":        "string",
+				"description": "Optional. Start of time window for filtering (ISO 8601), e.g. 2025-01-09T04:00:00Z",
+			},
+			"end_time": map[string]any{
+				"type":        "string",
+				"description": "Optional. End of time window for filtering (ISO 8601), e.g. 2025-02-09T04:00:00Z",
+			},
+			"mode": map[string]any{
+				"type":        "string",
+				"description": "Optional. ACTIVE, INACTIVE, UPCOMING, SELECTABLE, or ALL.",
+			},
+			"search": map[string]any{
+				"type":        "string",
+				"description": "Optional. Search text.",
 			},
 			"page_size": map[string]any{
 				"type":        "number",

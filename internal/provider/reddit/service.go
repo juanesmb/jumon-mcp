@@ -43,6 +43,26 @@ type listCampaignsInput struct {
 	pageToken string
 }
 
+type listAdGroupsInput struct {
+	pageSize   int
+	pageToken  string
+	campaignID string
+}
+
+type listAdsInput struct {
+	pageSize  int
+	pageToken string
+}
+
+type listFundingInstrumentsInput struct {
+	pageSize  int
+	pageToken string
+	startTime string
+	endTime   string
+	mode      string
+	search    string
+}
+
 type createReportInput struct {
 	pageSize        int
 	pageToken       string
@@ -85,19 +105,49 @@ func (s *service) listAdAccountsByBusiness(ctx context.Context, userID, business
 }
 
 func (s *service) listCampaignsForAdAccount(ctx context.Context, userID, adAccountID string, in listCampaignsInput) (json.RawMessage, error) {
-	id := strings.TrimSpace(adAccountID)
-	if id == "" {
-		return nil, fmt.Errorf("reddit: ad_account_id is required; use reddit_list_ad_accounts after reddit_list_businesses")
+	id, err := requireRedditAdAccountID(adAccountID)
+	if err != nil {
+		return nil, err
 	}
 	path := pathAdAccountCampaigns(id)
 	query := buildCampaignsQuery(in)
 	return s.redditGET(ctx, userID, path, query, in.pageToken)
 }
 
+func (s *service) listAdGroupsForAdAccount(ctx context.Context, userID, adAccountID string, in listAdGroupsInput) (json.RawMessage, error) {
+	id, err := requireRedditAdAccountID(adAccountID)
+	if err != nil {
+		return nil, err
+	}
+	path := pathAdAccountAdGroups(id)
+	query := buildAdGroupsQuery(in)
+	return s.redditGET(ctx, userID, path, query, in.pageToken)
+}
+
+func (s *service) listAdsForAdAccount(ctx context.Context, userID, adAccountID string, in listAdsInput) (json.RawMessage, error) {
+	id, err := requireRedditAdAccountID(adAccountID)
+	if err != nil {
+		return nil, err
+	}
+	path := pathAdAccountAds(id)
+	query := buildAdsQuery(in)
+	return s.redditGET(ctx, userID, path, query, in.pageToken)
+}
+
+func (s *service) listFundingInstrumentsForAdAccount(ctx context.Context, userID, adAccountID string, in listFundingInstrumentsInput) (json.RawMessage, error) {
+	id, err := requireRedditAdAccountID(adAccountID)
+	if err != nil {
+		return nil, err
+	}
+	path := pathAdAccountFundingInstruments(id)
+	query := buildFundingInstrumentsQuery(in)
+	return s.redditGET(ctx, userID, path, query, in.pageToken)
+}
+
 func (s *service) createReportForAdAccount(ctx context.Context, userID, adAccountID string, in createReportInput) (json.RawMessage, error) {
-	id := strings.TrimSpace(adAccountID)
-	if id == "" {
-		return nil, fmt.Errorf("reddit: ad_account_id is required; use reddit_list_ad_accounts after reddit_list_businesses")
+	id, err := requireRedditAdAccountID(adAccountID)
+	if err != nil {
+		return nil, err
 	}
 	fields := nonemptyStrings(in.fields)
 	if len(fields) == 0 {
@@ -124,6 +174,14 @@ func (s *service) createReportForAdAccount(ctx context.Context, userID, adAccoun
 	query := buildReportQuery(in)
 	path := pathAdAccountReports(id)
 	return s.redditPOST(ctx, userID, path, query, body, in.pageToken)
+}
+
+func requireRedditAdAccountID(adAccountID string) (string, error) {
+	id := strings.TrimSpace(adAccountID)
+	if id == "" {
+		return "", fmt.Errorf("reddit: ad_account_id is required; use reddit_list_ad_accounts after reddit_list_businesses")
+	}
+	return id, nil
 }
 
 func validateRedditHourlyUTC(field, value string) error {
@@ -179,20 +237,49 @@ func buildBusinessesQuery(in listBusinessesInput) map[string]string {
 }
 
 func buildAdAccountsQuery(in listAdAccountsInput) map[string]string {
-	query := map[string]string{}
-	appendRedditPage(query, in.pageSize, in.pageToken, defaultRedditPagedListSize, maxRedditPagedListSize)
-	return query
+	return standardPagedListQuery(in.pageSize, in.pageToken)
 }
 
 func buildCampaignsQuery(in listCampaignsInput) map[string]string {
-	query := map[string]string{}
-	appendRedditPage(query, in.pageSize, in.pageToken, defaultRedditPagedListSize, maxRedditPagedListSize)
+	return standardPagedListQuery(in.pageSize, in.pageToken)
+}
+
+func buildAdGroupsQuery(in listAdGroupsInput) map[string]string {
+	query := standardPagedListQuery(in.pageSize, in.pageToken)
+	if v := strings.TrimSpace(in.campaignID); v != "" {
+		query[queryKeyCampaignID] = v
+	}
+	return query
+}
+
+func buildAdsQuery(in listAdsInput) map[string]string {
+	return standardPagedListQuery(in.pageSize, in.pageToken)
+}
+
+func buildFundingInstrumentsQuery(in listFundingInstrumentsInput) map[string]string {
+	query := standardPagedListQuery(in.pageSize, in.pageToken)
+	if v := strings.TrimSpace(in.startTime); v != "" {
+		query[queryKeyStartTime] = v
+	}
+	if v := strings.TrimSpace(in.endTime); v != "" {
+		query[queryKeyEndTime] = v
+	}
+	if v := strings.TrimSpace(in.mode); v != "" {
+		query[queryKeyMode] = v
+	}
+	if v := strings.TrimSpace(in.search); v != "" {
+		query[queryKeySearch] = v
+	}
 	return query
 }
 
 func buildReportQuery(in createReportInput) map[string]string {
+	return standardPagedListQuery(in.pageSize, in.pageToken)
+}
+
+func standardPagedListQuery(pageSize int, pageToken string) map[string]string {
 	query := map[string]string{}
-	appendRedditPage(query, in.pageSize, in.pageToken, defaultRedditPagedListSize, maxRedditPagedListSize)
+	appendRedditPage(query, pageSize, pageToken, defaultRedditPagedListSize, maxRedditPagedListSize)
 	return query
 }
 

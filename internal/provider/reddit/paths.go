@@ -11,6 +11,11 @@ const (
 	queryKeyPageToken       = "page.token"
 	queryKeyAdAccountFilter = "ad_account_id"
 	queryKeyRole            = "role"
+	queryKeyCampaignID      = "campaign_id"
+	queryKeyStartTime       = "start_time"
+	queryKeyEndTime         = "end_time"
+	queryKeyMode            = "mode"
+	queryKeySearch          = "search"
 )
 
 func pathBusinessAdAccounts(businessID string) string {
@@ -23,4 +28,16 @@ func pathAdAccountCampaigns(adAccountID string) string {
 
 func pathAdAccountReports(adAccountID string) string {
 	return fmt.Sprintf("ad_accounts/%s/reports", url.PathEscape(adAccountID))
+}
+
+func pathAdAccountAdGroups(adAccountID string) string {
+	return fmt.Sprintf("ad_accounts/%s/ad_groups", url.PathEscape(adAccountID))
+}
+
+func pathAdAccountAds(adAccountID string) string {
+	return fmt.Sprintf("ad_accounts/%s/ads", url.PathEscape(adAccountID))
+}
+
+func pathAdAccountFundingInstruments(adAccountID string) string {
+	return fmt.Sprintf("ad_accounts/%s/funding_instruments", url.PathEscape(adAccountID))
 }
