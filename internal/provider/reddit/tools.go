@@ -76,6 +76,36 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error 
 			Execute:            listFundingInstrumentsExecutor(svc),
 		},
 		{
+			Name:               "reddit_list_pixels",
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Lists conversion pixels for one Reddit Ads account.",
+			Description:        "Calls GET ad_accounts/{ad_account_id}/pixels (List Pixels By Ad Account). Requires ad_account_id from reddit_list_ad_accounts. Uses page.size and page.token. Rate limit: ads-conversion-signals (~30 requests per 60 seconds per Reddit docs).",
+			InputSchema:        listPixelsSchema(),
+			RequiresConnection: true,
+			Execute:            listPixelsExecutor(svc),
+		},
+		{
+			Name:               "reddit_list_custom_audiences",
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Lists user custom audiences for one Reddit Ads account.",
+			Description:        "Calls GET ad_accounts/{ad_account_id}/custom_audiences (List User Custom Audiences). Requires ad_account_id from reddit_list_ad_accounts. Optional `name`: Reddit expects the same filter clause micro-syntax as other list filters (see OpenAPI `POST businesses/{business_id}/ad_accounts/query` filter examples: `==` exact match, `=@` partial). If you pass a plain label (e.g. `foo`), this tool sends `=@foo` as the query value; for exact match pass `==foo` or a full clause yourself. Hyphenated plain names can split into reserved tokens (e.g. `does-not-exist`)—omit `name` or use an explicit `=@...` / `==...` clause. Pagination: page_token and page.size (max 2000 for this route per OpenAPI).",
+			InputSchema:        listUserCustomAudiencesSchema(),
+			RequiresConnection: true,
+			Execute:            listUserCustomAudiencesExecutor(svc),
+		},
+		{
+			Name:               "reddit_generate_bid_suggestion",
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Requests a bid suggestion from Reddit forecasting (requires `data`).",
+			Description:        "Calls POST forecasting/bid_suggestions with JSON {\"data\":{...}}. You must pass `data` with at least one SuggestBidRequestData field (e.g. bid_type, bid_strategy, campaign_objective, currency, duration, targeting); `ad_account_id` alone is always copied into data but is not enough—Reddit may return an opaque 500 otherwise. Rate limit: ads-forecasting (~30 requests per 60 seconds per Reddit docs). See Reddit Generate Bid Suggestion / OpenAPI.",
+			InputSchema:        generateBidSuggestionSchema(),
+			RequiresConnection: true,
+			Execute:            generateBidSuggestionExecutor(svc),
+		},
+		{
 			Name:               "reddit_get_report",
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
@@ -198,6 +228,55 @@ func listFundingInstrumentsExecutor(svc *service) registry.Executor {
 		}
 		adAccountID := strings.TrimSpace(toString(params["ad_account_id"]))
 		raw, err := svc.listFundingInstrumentsForAdAccount(ctx, userID, adAccountID, in)
+		if err != nil {
+			return nil, err
+		}
+		return unmarshalPayload(raw)
+	}
+}
+
+func listPixelsExecutor(svc *service) registry.Executor {
+	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
+		in := listAdsInput{
+			pageToken: strings.TrimSpace(toString(params["page_token"])),
+		}
+		if ps, ok := toInt(params["page_size"]); ok && ps > 0 {
+			in.pageSize = ps
+		}
+		adAccountID := strings.TrimSpace(toString(params["ad_account_id"]))
+		raw, err := svc.listPixelsForAdAccount(ctx, userID, adAccountID, in)
+		if err != nil {
+			return nil, err
+		}
+		return unmarshalPayload(raw)
+	}
+}
+
+func listUserCustomAudiencesExecutor(svc *service) registry.Executor {
+	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
+		in := listUserCustomAudiencesInput{
+			pageToken: strings.TrimSpace(toString(params["page_token"])),
+			name:      strings.TrimSpace(toString(params["name"])),
+		}
+		if ps, ok := toInt(params["page_size"]); ok && ps > 0 {
+			in.pageSize = ps
+		}
+		adAccountID := strings.TrimSpace(toString(params["ad_account_id"]))
+		raw, err := svc.listUserCustomAudiencesForAdAccount(ctx, userID, adAccountID, in)
+		if err != nil {
+			return nil, err
+		}
+		return unmarshalPayload(raw)
+	}
+}
+
+func generateBidSuggestionExecutor(svc *service) registry.Executor {
+	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
+		in := generateBidSuggestionInput{
+			data: toMapStringAny(params["data"]),
+		}
+		adAccountID := strings.TrimSpace(toString(params["ad_account_id"]))
+		raw, err := svc.generateBidSuggestion(ctx, userID, adAccountID, in)
 		if err != nil {
 			return nil, err
 		}
@@ -387,6 +466,54 @@ func listFundingInstrumentsSchema() map[string]any {
 	}
 }
 
+func listPixelsSchema() map[string]any {
+	return listAdsSchema()
+}
+
+func listUserCustomAudiencesSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"ad_account_id"},
+		"properties": map[string]any{
+			"ad_account_id": map[string]any{
+				"type":        "string",
+				"description": "Reddit ad account id from reddit_list_ad_accounts.",
+			},
+			"name": map[string]any{
+				"type":        "string",
+				"description": "Optional. Reddit `name` query value is a filter clause, not a free-text label. Plain text is sent as partial match `=@<value>` (see Reddit filter operators, same family as `POST businesses/.../ad_accounts/query` `filter` field). Pass `=@substring` or `==Exact Name` yourself to override. Hyphenated plain names may hit reserved-token validation—use explicit `=@`/`==` or omit.",
+			},
+			"page_size": map[string]any{
+				"type":        "number",
+				"description": "Mapped to Reddit page.size for this endpoint (default 100, maximum 2000 per OpenAPI).",
+			},
+			"page_token": map[string]any{
+				"type":        "string",
+				"description": "Mapped to Reddit page.token (pagination).",
+			},
+		},
+	}
+}
+
+func generateBidSuggestionSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"ad_account_id", "data"},
+		"properties": map[string]any{
+			"ad_account_id": map[string]any{
+				"type":        "string",
+				"description": "Reddit ad account id; copied into the JSON body data.ad_account_id.",
+			},
+			"data": map[string]any{
+				"type":                 "object",
+				"minProperties":        1,
+				"additionalProperties": true,
+				"description":          "Required. At least one SuggestBidRequestData field in addition to the injected ad_account_id (e.g. bid_type, bid_strategy, campaign_objective, currency, optimization_goal, duration, targeting). Example: {\"bid_strategy\":\"MAXIMIZE_VOLUME\",\"bid_type\":\"CPC\",\"campaign_objective\":\"CLICKS\",\"currency\":\"USD\"}.",
+			},
+		},
+	}
+}
+
 func getReportSchema() map[string]any {
 	fieldsItems := map[string]any{"type": "string"}
 	return map[string]any{
@@ -464,6 +591,17 @@ func toInt(value any) (int, bool) {
 	default:
 		return 0, false
 	}
+}
+
+func toMapStringAny(value any) map[string]any {
+	if value == nil {
+		return nil
+	}
+	m, ok := value.(map[string]any)
+	if !ok {
+		return nil
+	}
+	return m
 }
 
 func toStringSlice(value any) []string {

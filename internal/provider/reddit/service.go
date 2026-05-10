@@ -4,17 +4,37 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
 const (
-	maxPageSizeBusinesses      = 700
-	defaultPageSizeBusinesses  = 700
-	maxRedditPagedListSize     = 1000
-	defaultRedditPagedListSize = 100
+	maxPageSizeBusinesses            = 700
+	defaultPageSizeBusinesses        = 700
+	maxRedditPagedListSize           = 1000
+	defaultRedditPagedListSize       = 100
+	maxRedditCustomAudiencesPageSize = 2000 // List User Custom Audiences (OpenAPI)
 )
+
+// redditCustomAudienceNameQueryTokenSplit tokenizes plain audience labels before we prefix "=@".
+// Reserved tokens (e.g. "not" in "does-not-exist") are rejected; values starting with =@ or == pass through.
+var redditCustomAudienceNameQueryTokenSplit = regexp.MustCompile(`[^0-9A-Za-z]+`)
+
+var redditCustomAudienceNameReservedFilterTokens = map[string]string{
+	"and":     "AND",
+	"between": "BETWEEN",
+	"eq":      "EQ",
+	"gt":      "GT",
+	"gte":     "GTE",
+	"like":    "LIKE",
+	"lt":      "LT",
+	"lte":     "LTE",
+	"ne":      "NE",
+	"not":     "NOT",
+	"or":      "OR",
+}
 
 var hourlyUTCReportTimestamp = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:00:00Z$`)
 
@@ -61,6 +81,16 @@ type listFundingInstrumentsInput struct {
 	endTime   string
 	mode      string
 	search    string
+}
+
+type listUserCustomAudiencesInput struct {
+	pageSize  int
+	pageToken string
+	name      string
+}
+
+type generateBidSuggestionInput struct {
+	data map[string]any
 }
 
 type createReportInput struct {
@@ -144,6 +174,45 @@ func (s *service) listFundingInstrumentsForAdAccount(ctx context.Context, userID
 	return s.redditGET(ctx, userID, path, query, in.pageToken)
 }
 
+func (s *service) listPixelsForAdAccount(ctx context.Context, userID, adAccountID string, in listAdsInput) (json.RawMessage, error) {
+	id, err := requireRedditAdAccountID(adAccountID)
+	if err != nil {
+		return nil, err
+	}
+	path := pathAdAccountPixels(id)
+	query := standardPagedListQuery(in.pageSize, in.pageToken)
+	return s.redditGET(ctx, userID, path, query, in.pageToken)
+}
+
+func (s *service) listUserCustomAudiencesForAdAccount(ctx context.Context, userID, adAccountID string, in listUserCustomAudiencesInput) (json.RawMessage, error) {
+	id, err := requireRedditAdAccountID(adAccountID)
+	if err != nil {
+		return nil, err
+	}
+	nameQuery, err := normalizeCustomAudienceNameQueryParam(in.name)
+	if err != nil {
+		return nil, err
+	}
+	path := pathAdAccountCustomAudiences(id)
+	query := buildUserCustomAudiencesQuery(in.pageSize, in.pageToken, nameQuery)
+	return s.redditGET(ctx, userID, path, query, in.pageToken)
+}
+
+func (s *service) generateBidSuggestion(ctx context.Context, userID, adAccountID string, in generateBidSuggestionInput) (json.RawMessage, error) {
+	id, err := requireRedditAdAccountID(adAccountID)
+	if err != nil {
+		return nil, err
+	}
+	if len(in.data) == 0 {
+		return nil, fmt.Errorf("reddit: data must include at least one SuggestBidRequestData field (e.g. bid_type, bid_strategy, campaign_objective, currency, optimization_goal, duration, targeting); ad_account_id alone is merged into data but Reddit rejects minimal bodies with an upstream error — see Generate Bid Suggestion / OpenAPI")
+	}
+	inner := maps.Clone(in.data)
+	inner["ad_account_id"] = id
+	body := map[string]any{"data": inner}
+	path := pathForecastingBidSuggestions()
+	return s.redditPOST(ctx, userID, path, nil, body, "")
+}
+
 func (s *service) createReportForAdAccount(ctx context.Context, userID, adAccountID string, in createReportInput) (json.RawMessage, error) {
 	id, err := requireRedditAdAccountID(adAccountID)
 	if err != nil {
@@ -182,6 +251,36 @@ func requireRedditAdAccountID(adAccountID string) (string, error) {
 		return "", fmt.Errorf("reddit: ad_account_id is required; use reddit_list_ad_accounts after reddit_list_businesses")
 	}
 	return id, nil
+}
+
+func normalizeCustomAudienceNameQueryParam(raw string) (string, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", nil
+	}
+	if strings.HasPrefix(raw, "==") || strings.HasPrefix(raw, "=@") {
+		return raw, nil
+	}
+	if err := validatePlainCustomAudienceNameBeforePrefix(raw); err != nil {
+		return "", err
+	}
+	return "=@" + raw, nil
+}
+
+func validatePlainCustomAudienceNameBeforePrefix(name string) error {
+	lower := strings.ToLower(name)
+	for _, tok := range redditCustomAudienceNameQueryTokenSplit.Split(lower, -1) {
+		if tok == "" {
+			continue
+		}
+		if label, ok := redditCustomAudienceNameReservedFilterTokens[tok]; ok {
+			return fmt.Errorf(
+				"reddit: name %q contains reserved filter token %q (%s) before applying partial-match prefix; omit `name`, rephrase the audience name, pass an explicit clause starting with =@ or == (see Reddit filter operators), or filter client-side",
+				strings.TrimSpace(name), tok, label,
+			)
+		}
+	}
+	return nil
 }
 
 func validateRedditHourlyUTC(field, value string) error {
@@ -269,6 +368,15 @@ func buildFundingInstrumentsQuery(in listFundingInstrumentsInput) map[string]str
 	}
 	if v := strings.TrimSpace(in.search); v != "" {
 		query[queryKeySearch] = v
+	}
+	return query
+}
+
+func buildUserCustomAudiencesQuery(pageSize int, pageToken string, nameQuery string) map[string]string {
+	query := map[string]string{}
+	appendRedditPage(query, pageSize, pageToken, defaultRedditPagedListSize, maxRedditCustomAudiencesPageSize)
+	if v := strings.TrimSpace(nameQuery); v != "" {
+		query[queryKeyName] = v
 	}
 	return query
 }

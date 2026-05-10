@@ -16,6 +16,7 @@ const (
 	queryKeyEndTime         = "end_time"
 	queryKeyMode            = "mode"
 	queryKeySearch          = "search"
+	queryKeyName            = "name"
 )
 
 func pathBusinessAdAccounts(businessID string) string {
@@ -40,4 +41,17 @@ func pathAdAccountAds(adAccountID string) string {
 
 func pathAdAccountFundingInstruments(adAccountID string) string {
 	return fmt.Sprintf("ad_accounts/%s/funding_instruments", url.PathEscape(adAccountID))
+}
+
+func pathAdAccountPixels(adAccountID string) string {
+	return fmt.Sprintf("ad_accounts/%s/pixels", url.PathEscape(adAccountID))
+}
+
+func pathAdAccountCustomAudiences(adAccountID string) string {
+	return fmt.Sprintf("ad_accounts/%s/custom_audiences", url.PathEscape(adAccountID))
+}
+
+// pathForecastingBidSuggestions is POST Generate Bid Suggestion (global path, no ad_account in URL).
+func pathForecastingBidSuggestions() string {
+	return "forecasting/bid_suggestions"
 }
