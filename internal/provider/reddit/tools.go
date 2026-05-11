@@ -10,110 +10,123 @@ import (
 	"jumon-mcp/internal/provider/registry"
 )
 
+const (
+	toolRedditListBusinesses         = "reddit_list_businesses"
+	toolRedditListAdAccounts         = "reddit_list_ad_accounts"
+	toolRedditListCampaigns          = "reddit_list_campaigns"
+	toolRedditListAdGroups           = "reddit_list_ad_groups"
+	toolRedditListAds                = "reddit_list_ads"
+	toolRedditListFundingInstruments = "reddit_list_funding_instruments"
+	toolRedditListPixels             = "reddit_list_pixels"
+	toolRedditListCustomAudiences    = "reddit_list_custom_audiences"
+	toolRedditGenerateBidSuggestion  = "reddit_generate_bid_suggestion"
+	toolRedditGetReport              = "reddit_get_report"
+)
+
 func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error {
 	port := newRedditGateway(gatewayClient)
 	svc := newService(port)
 
 	tools := []registry.ToolDefinition{
 		{
-			Name:               "reddit_list_businesses",
+			Name:               toolRedditListBusinesses,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Lists Reddit Advertising businesses visible to the connected user.",
 			Description:        "Calls GET me/businesses (list_my_businesses). Use pagination fields in the response, then pass a business id to reddit_list_ad_accounts.",
 			InputSchema:        listBusinessesSchema(),
 			RequiresConnection: true,
-			Execute:            listBusinessesExecutor(svc),
+			Execute:            listBusinessesExecutor(svc, toolRedditListBusinesses),
 		},
 		{
-			Name:               "reddit_list_ad_accounts",
+			Name:               toolRedditListAdAccounts,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Lists Reddit Ads accounts under one business.",
 			Description:        "Calls GET businesses/{business_id}/ad_accounts after you obtain business_id from reddit_list_businesses. Supports Reddit pagination via page_token.",
 			InputSchema:        listAdAccountsSchema(),
 			RequiresConnection: true,
-			Execute:            listAdAccountsExecutor(svc),
+			Execute:            listAdAccountsExecutor(svc, toolRedditListAdAccounts),
 		},
 		{
-			Name:               "reddit_list_campaigns",
+			Name:               toolRedditListCampaigns,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Lists Reddit Ads campaigns under one ad account.",
 			Description:        "Calls GET ad_accounts/{ad_account_id}/campaigns (Campaign Management Read). Requires ad_account_id from reddit_list_ad_accounts (after reddit_list_businesses). Uses Reddit pagination: page_token and mapped page.size.",
 			InputSchema:        listCampaignsSchema(),
 			RequiresConnection: true,
-			Execute:            listCampaignsExecutor(svc),
+			Execute:            listCampaignsExecutor(svc, toolRedditListCampaigns),
 		},
 		{
-			Name:               "reddit_list_ad_groups",
+			Name:               toolRedditListAdGroups,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Lists Reddit Ads ad groups under one ad account.",
 			Description:        "Calls GET ad_accounts/{ad_account_id}/ad_groups. Requires ad_account_id from reddit_list_ad_accounts. Optional campaign_id filters by campaign. Uses Reddit pagination (page_token, page.size). Reddit id[] filters for ad groups are not passed through this tool until the gateway supports repeated query keys.",
 			InputSchema:        listAdGroupsSchema(),
 			RequiresConnection: true,
-			Execute:            listAdGroupsExecutor(svc),
+			Execute:            listAdGroupsExecutor(svc, toolRedditListAdGroups),
 		},
 		{
-			Name:               "reddit_list_ads",
+			Name:               toolRedditListAds,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Lists Reddit Ads under one ad account.",
 			Description:        "Calls GET ad_accounts/{ad_account_id}/ads. Requires ad_account_id from reddit_list_ad_accounts. Uses Reddit pagination (page_token, page.size). Reddit id[] ad filters are not passed through this tool until the gateway supports repeated query keys.",
 			InputSchema:        listAdsSchema(),
 			RequiresConnection: true,
-			Execute:            listAdsExecutor(svc),
+			Execute:            listAdsExecutor(svc, toolRedditListAds),
 		},
 		{
-			Name:               "reddit_list_funding_instruments",
+			Name:               toolRedditListFundingInstruments,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Lists funding instruments for one Reddit Ads account.",
 			Description:        "Calls GET ad_accounts/{ad_account_id}/funding_instruments. Requires ad_account_id from reddit_list_ad_accounts. Optional start_time, end_time (ISO 8601), mode (ACTIVE, INACTIVE, UPCOMING, SELECTABLE, ALL), and search. Uses Reddit pagination. Billing rate limit is stricter (~30 requests per 60 seconds per Reddit docs). Array query filters (funding_instrument_ids, types) are not passed through until the gateway supports repeated query keys.",
 			InputSchema:        listFundingInstrumentsSchema(),
 			RequiresConnection: true,
-			Execute:            listFundingInstrumentsExecutor(svc),
+			Execute:            listFundingInstrumentsExecutor(svc, toolRedditListFundingInstruments),
 		},
 		{
-			Name:               "reddit_list_pixels",
+			Name:               toolRedditListPixels,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Lists conversion pixels for one Reddit Ads account.",
 			Description:        "Calls GET ad_accounts/{ad_account_id}/pixels (List Pixels By Ad Account). Requires ad_account_id from reddit_list_ad_accounts. Uses page.size and page.token. Rate limit: ads-conversion-signals (~30 requests per 60 seconds per Reddit docs).",
 			InputSchema:        listPixelsSchema(),
 			RequiresConnection: true,
-			Execute:            listPixelsExecutor(svc),
+			Execute:            listPixelsExecutor(svc, toolRedditListPixels),
 		},
 		{
-			Name:               "reddit_list_custom_audiences",
+			Name:               toolRedditListCustomAudiences,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Lists user custom audiences for one Reddit Ads account.",
 			Description:        "Calls GET ad_accounts/{ad_account_id}/custom_audiences (List User Custom Audiences). Requires ad_account_id from reddit_list_ad_accounts. Optional `name`: Reddit expects the same filter clause micro-syntax as other list filters (see OpenAPI `POST businesses/{business_id}/ad_accounts/query` filter examples: `==` exact match, `=@` partial). If you pass a plain label (e.g. `foo`), this tool sends `=@foo` as the query value; for exact match pass `==foo` or a full clause yourself. Hyphenated plain names can split into reserved tokens (e.g. `does-not-exist`)—omit `name` or use an explicit `=@...` / `==...` clause. Pagination: page_token and page.size (max 2000 for this route per OpenAPI).",
 			InputSchema:        listUserCustomAudiencesSchema(),
 			RequiresConnection: true,
-			Execute:            listUserCustomAudiencesExecutor(svc),
+			Execute:            listUserCustomAudiencesExecutor(svc, toolRedditListCustomAudiences),
 		},
 		{
-			Name:               "reddit_generate_bid_suggestion",
+			Name:               toolRedditGenerateBidSuggestion,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Requests a bid suggestion from Reddit forecasting (requires `data`).",
 			Description:        "Calls POST forecasting/bid_suggestions with JSON {\"data\":{...}}. You must pass `data` with at least one SuggestBidRequestData field (e.g. bid_type, bid_strategy, campaign_objective, currency, duration, targeting); `ad_account_id` alone is always copied into data but is not enough—Reddit may return an opaque 500 otherwise. Rate limit: ads-forecasting (~30 requests per 60 seconds per Reddit docs). See Reddit Generate Bid Suggestion / OpenAPI.",
 			InputSchema:        generateBidSuggestionSchema(),
 			RequiresConnection: true,
-			Execute:            generateBidSuggestionExecutor(svc),
+			Execute:            generateBidSuggestionExecutor(svc, toolRedditGenerateBidSuggestion),
 		},
 		{
-			Name:               "reddit_get_report",
+			Name:               toolRedditGetReport,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Creates/fetches metrics for one Reddit Ads ad account reporting request.",
 			Description:        "Calls POST ad_accounts/{ad_account_id}/reports with a JSON {\"data\":{...}} body. Requires ad_account_id from reddit_list_ad_accounts (after reddit_list_businesses). starts_at and ends_at must be hourly UTC (YYYY-MM-DDTHH:00:00Z). fields and breakdowns are Reddit metric enums (see Reddit Ads Reporting docs). Reddit reporting is quota-sensitive (~60 POSTs per rolling 60 seconds per Reddit documentation). Optionally pass page_token to fetch the next page of the report via query params page.size/page.token.",
 			InputSchema:        getReportSchema(),
 			RequiresConnection: true,
-			Execute:            getReportExecutor(svc),
+			Execute:            getReportExecutor(svc, toolRedditGetReport),
 		},
 	}
 
@@ -125,7 +138,7 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error 
 	return nil
 }
 
-func listBusinessesExecutor(svc *service) registry.Executor {
+func listBusinessesExecutor(svc *service, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		in := listBusinessesInput{
 			adAccountID: strings.TrimSpace(toString(params["ad_account_id"])),
@@ -136,7 +149,7 @@ func listBusinessesExecutor(svc *service) registry.Executor {
 			in.pageSize = ps
 		}
 
-		raw, err := svc.listMyBusinesses(ctx, userID, in)
+		raw, err := svc.listMyBusinesses(ctx, mcpTool, userID, in)
 		if err != nil {
 			return nil, err
 		}
@@ -144,7 +157,7 @@ func listBusinessesExecutor(svc *service) registry.Executor {
 	}
 }
 
-func listAdAccountsExecutor(svc *service) registry.Executor {
+func listAdAccountsExecutor(svc *service, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		in := listAdAccountsInput{
 			pageToken: strings.TrimSpace(toString(params["page_token"])),
@@ -154,7 +167,7 @@ func listAdAccountsExecutor(svc *service) registry.Executor {
 		}
 
 		businessID := strings.TrimSpace(toString(params["business_id"]))
-		raw, err := svc.listAdAccountsByBusiness(ctx, userID, businessID, in)
+		raw, err := svc.listAdAccountsByBusiness(ctx, mcpTool, userID, businessID, in)
 		if err != nil {
 			return nil, err
 		}
@@ -162,7 +175,7 @@ func listAdAccountsExecutor(svc *service) registry.Executor {
 	}
 }
 
-func listCampaignsExecutor(svc *service) registry.Executor {
+func listCampaignsExecutor(svc *service, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		in := listCampaignsInput{
 			pageToken: strings.TrimSpace(toString(params["page_token"])),
@@ -171,7 +184,7 @@ func listCampaignsExecutor(svc *service) registry.Executor {
 			in.pageSize = ps
 		}
 		adAccountID := strings.TrimSpace(toString(params["ad_account_id"]))
-		raw, err := svc.listCampaignsForAdAccount(ctx, userID, adAccountID, in)
+		raw, err := svc.listCampaignsForAdAccount(ctx, mcpTool, userID, adAccountID, in)
 		if err != nil {
 			return nil, err
 		}
@@ -179,7 +192,7 @@ func listCampaignsExecutor(svc *service) registry.Executor {
 	}
 }
 
-func listAdGroupsExecutor(svc *service) registry.Executor {
+func listAdGroupsExecutor(svc *service, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		in := listAdGroupsInput{
 			pageToken:  strings.TrimSpace(toString(params["page_token"])),
@@ -189,7 +202,7 @@ func listAdGroupsExecutor(svc *service) registry.Executor {
 			in.pageSize = ps
 		}
 		adAccountID := strings.TrimSpace(toString(params["ad_account_id"]))
-		raw, err := svc.listAdGroupsForAdAccount(ctx, userID, adAccountID, in)
+		raw, err := svc.listAdGroupsForAdAccount(ctx, mcpTool, userID, adAccountID, in)
 		if err != nil {
 			return nil, err
 		}
@@ -197,7 +210,7 @@ func listAdGroupsExecutor(svc *service) registry.Executor {
 	}
 }
 
-func listAdsExecutor(svc *service) registry.Executor {
+func listAdsExecutor(svc *service, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		in := listAdsInput{
 			pageToken: strings.TrimSpace(toString(params["page_token"])),
@@ -206,7 +219,7 @@ func listAdsExecutor(svc *service) registry.Executor {
 			in.pageSize = ps
 		}
 		adAccountID := strings.TrimSpace(toString(params["ad_account_id"]))
-		raw, err := svc.listAdsForAdAccount(ctx, userID, adAccountID, in)
+		raw, err := svc.listAdsForAdAccount(ctx, mcpTool, userID, adAccountID, in)
 		if err != nil {
 			return nil, err
 		}
@@ -214,7 +227,7 @@ func listAdsExecutor(svc *service) registry.Executor {
 	}
 }
 
-func listFundingInstrumentsExecutor(svc *service) registry.Executor {
+func listFundingInstrumentsExecutor(svc *service, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		in := listFundingInstrumentsInput{
 			pageToken: strings.TrimSpace(toString(params["page_token"])),
@@ -227,7 +240,7 @@ func listFundingInstrumentsExecutor(svc *service) registry.Executor {
 			in.pageSize = ps
 		}
 		adAccountID := strings.TrimSpace(toString(params["ad_account_id"]))
-		raw, err := svc.listFundingInstrumentsForAdAccount(ctx, userID, adAccountID, in)
+		raw, err := svc.listFundingInstrumentsForAdAccount(ctx, mcpTool, userID, adAccountID, in)
 		if err != nil {
 			return nil, err
 		}
@@ -235,7 +248,7 @@ func listFundingInstrumentsExecutor(svc *service) registry.Executor {
 	}
 }
 
-func listPixelsExecutor(svc *service) registry.Executor {
+func listPixelsExecutor(svc *service, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		in := listAdsInput{
 			pageToken: strings.TrimSpace(toString(params["page_token"])),
@@ -244,7 +257,7 @@ func listPixelsExecutor(svc *service) registry.Executor {
 			in.pageSize = ps
 		}
 		adAccountID := strings.TrimSpace(toString(params["ad_account_id"]))
-		raw, err := svc.listPixelsForAdAccount(ctx, userID, adAccountID, in)
+		raw, err := svc.listPixelsForAdAccount(ctx, mcpTool, userID, adAccountID, in)
 		if err != nil {
 			return nil, err
 		}
@@ -252,7 +265,7 @@ func listPixelsExecutor(svc *service) registry.Executor {
 	}
 }
 
-func listUserCustomAudiencesExecutor(svc *service) registry.Executor {
+func listUserCustomAudiencesExecutor(svc *service, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		in := listUserCustomAudiencesInput{
 			pageToken: strings.TrimSpace(toString(params["page_token"])),
@@ -262,7 +275,7 @@ func listUserCustomAudiencesExecutor(svc *service) registry.Executor {
 			in.pageSize = ps
 		}
 		adAccountID := strings.TrimSpace(toString(params["ad_account_id"]))
-		raw, err := svc.listUserCustomAudiencesForAdAccount(ctx, userID, adAccountID, in)
+		raw, err := svc.listUserCustomAudiencesForAdAccount(ctx, mcpTool, userID, adAccountID, in)
 		if err != nil {
 			return nil, err
 		}
@@ -270,13 +283,13 @@ func listUserCustomAudiencesExecutor(svc *service) registry.Executor {
 	}
 }
 
-func generateBidSuggestionExecutor(svc *service) registry.Executor {
+func generateBidSuggestionExecutor(svc *service, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		in := generateBidSuggestionInput{
 			data: toMapStringAny(params["data"]),
 		}
 		adAccountID := strings.TrimSpace(toString(params["ad_account_id"]))
-		raw, err := svc.generateBidSuggestion(ctx, userID, adAccountID, in)
+		raw, err := svc.generateBidSuggestion(ctx, mcpTool, userID, adAccountID, in)
 		if err != nil {
 			return nil, err
 		}
@@ -284,7 +297,7 @@ func generateBidSuggestionExecutor(svc *service) registry.Executor {
 	}
 }
 
-func getReportExecutor(svc *service) registry.Executor {
+func getReportExecutor(svc *service, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		in := createReportInput{
 			pageToken:       strings.TrimSpace(toString(params["page_token"])),
@@ -301,7 +314,7 @@ func getReportExecutor(svc *service) registry.Executor {
 		}
 
 		adAccountID := strings.TrimSpace(toString(params["ad_account_id"]))
-		raw, err := svc.createReportForAdAccount(ctx, userID, adAccountID, in)
+		raw, err := svc.createReportForAdAccount(ctx, mcpTool, userID, adAccountID, in)
 		if err != nil {
 			return nil, err
 		}

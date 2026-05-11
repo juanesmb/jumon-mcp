@@ -42,12 +42,16 @@ func (c *Client) RefreshProvider(ctx context.Context, provider, userID string) (
 	return c.httpClient.Post(ctx, path, map[string]string{"userId": userID}, c.authHeaders())
 }
 
-func (c *Client) ProxyProvider(ctx context.Context, provider, userID, method, proxyPath string, query map[string]string, body any, headers map[string]string) (*infrahttp.Response, error) {
+func (c *Client) ProxyProvider(ctx context.Context, provider, mcpTool, userID, method, proxyPath string, query map[string]string, body any, headers map[string]string) (*infrahttp.Response, error) {
+	if strings.TrimSpace(mcpTool) == "" {
+		return nil, fmt.Errorf("gateway: mcpTool is required")
+	}
 	path := fmt.Sprintf("%s/api/internal/providers/%s/proxy", c.baseURL, provider)
 	payload := map[string]any{
-		"userId": userID,
-		"method": method,
-		"path":   strings.TrimLeft(proxyPath, "/"),
+		"userId":  userID,
+		"mcpTool": strings.TrimSpace(mcpTool),
+		"method":  method,
+		"path":    strings.TrimLeft(proxyPath, "/"),
 	}
 	if len(query) > 0 {
 		payload["query"] = query
@@ -61,8 +65,8 @@ func (c *Client) ProxyProvider(ctx context.Context, provider, userID, method, pr
 	return c.httpClient.Post(ctx, path, payload, c.authHeaders())
 }
 
-func (c *Client) ProxyProviderOrRefresh(ctx context.Context, provider, userID, method, proxyPath string, query map[string]string, body any, headers map[string]string) (*infrahttp.Response, error) {
-	resp, err := c.ProxyProvider(ctx, provider, userID, method, proxyPath, query, body, headers)
+func (c *Client) ProxyProviderOrRefresh(ctx context.Context, provider, mcpTool, userID, method, proxyPath string, query map[string]string, body any, headers map[string]string) (*infrahttp.Response, error) {
+	resp, err := c.ProxyProvider(ctx, provider, mcpTool, userID, method, proxyPath, query, body, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +76,7 @@ func (c *Client) ProxyProviderOrRefresh(ctx context.Context, provider, userID, m
 	if _, err := c.RefreshProvider(ctx, provider, userID); err != nil {
 		return resp, nil
 	}
-	return c.ProxyProvider(ctx, provider, userID, method, proxyPath, query, body, headers)
+	return c.ProxyProvider(ctx, provider, mcpTool, userID, method, proxyPath, query, body, headers)
 }
 
 func IsProviderConnected(resp *infrahttp.Response) bool {

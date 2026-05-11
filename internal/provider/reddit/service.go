@@ -119,72 +119,72 @@ type redditReportData struct {
 	TimeZoneID      string   `json:"time_zone_id,omitempty"`
 }
 
-func (s *service) listMyBusinesses(ctx context.Context, userID string, in listBusinessesInput) (json.RawMessage, error) {
+func (s *service) listMyBusinesses(ctx context.Context, mcpTool, userID string, in listBusinessesInput) (json.RawMessage, error) {
 	query := buildBusinessesQuery(in)
-	return s.redditGET(ctx, userID, pathMeBusinesses, query, in.pageToken)
+	return s.redditGET(ctx, mcpTool, userID, pathMeBusinesses, query, in.pageToken)
 }
 
-func (s *service) listAdAccountsByBusiness(ctx context.Context, userID, businessID string, in listAdAccountsInput) (json.RawMessage, error) {
+func (s *service) listAdAccountsByBusiness(ctx context.Context, mcpTool, userID, businessID string, in listAdAccountsInput) (json.RawMessage, error) {
 	id := strings.TrimSpace(businessID)
 	if id == "" {
 		return nil, fmt.Errorf("reddit: business_id is required; call reddit_list_businesses first to obtain a business id")
 	}
 	path := pathBusinessAdAccounts(id)
 	query := buildAdAccountsQuery(in)
-	return s.redditGET(ctx, userID, path, query, in.pageToken)
+	return s.redditGET(ctx, mcpTool, userID, path, query, in.pageToken)
 }
 
-func (s *service) listCampaignsForAdAccount(ctx context.Context, userID, adAccountID string, in listCampaignsInput) (json.RawMessage, error) {
+func (s *service) listCampaignsForAdAccount(ctx context.Context, mcpTool, userID, adAccountID string, in listCampaignsInput) (json.RawMessage, error) {
 	id, err := requireRedditAdAccountID(adAccountID)
 	if err != nil {
 		return nil, err
 	}
 	path := pathAdAccountCampaigns(id)
 	query := buildCampaignsQuery(in)
-	return s.redditGET(ctx, userID, path, query, in.pageToken)
+	return s.redditGET(ctx, mcpTool, userID, path, query, in.pageToken)
 }
 
-func (s *service) listAdGroupsForAdAccount(ctx context.Context, userID, adAccountID string, in listAdGroupsInput) (json.RawMessage, error) {
+func (s *service) listAdGroupsForAdAccount(ctx context.Context, mcpTool, userID, adAccountID string, in listAdGroupsInput) (json.RawMessage, error) {
 	id, err := requireRedditAdAccountID(adAccountID)
 	if err != nil {
 		return nil, err
 	}
 	path := pathAdAccountAdGroups(id)
 	query := buildAdGroupsQuery(in)
-	return s.redditGET(ctx, userID, path, query, in.pageToken)
+	return s.redditGET(ctx, mcpTool, userID, path, query, in.pageToken)
 }
 
-func (s *service) listAdsForAdAccount(ctx context.Context, userID, adAccountID string, in listAdsInput) (json.RawMessage, error) {
+func (s *service) listAdsForAdAccount(ctx context.Context, mcpTool, userID, adAccountID string, in listAdsInput) (json.RawMessage, error) {
 	id, err := requireRedditAdAccountID(adAccountID)
 	if err != nil {
 		return nil, err
 	}
 	path := pathAdAccountAds(id)
 	query := buildAdsQuery(in)
-	return s.redditGET(ctx, userID, path, query, in.pageToken)
+	return s.redditGET(ctx, mcpTool, userID, path, query, in.pageToken)
 }
 
-func (s *service) listFundingInstrumentsForAdAccount(ctx context.Context, userID, adAccountID string, in listFundingInstrumentsInput) (json.RawMessage, error) {
+func (s *service) listFundingInstrumentsForAdAccount(ctx context.Context, mcpTool, userID, adAccountID string, in listFundingInstrumentsInput) (json.RawMessage, error) {
 	id, err := requireRedditAdAccountID(adAccountID)
 	if err != nil {
 		return nil, err
 	}
 	path := pathAdAccountFundingInstruments(id)
 	query := buildFundingInstrumentsQuery(in)
-	return s.redditGET(ctx, userID, path, query, in.pageToken)
+	return s.redditGET(ctx, mcpTool, userID, path, query, in.pageToken)
 }
 
-func (s *service) listPixelsForAdAccount(ctx context.Context, userID, adAccountID string, in listAdsInput) (json.RawMessage, error) {
+func (s *service) listPixelsForAdAccount(ctx context.Context, mcpTool, userID, adAccountID string, in listAdsInput) (json.RawMessage, error) {
 	id, err := requireRedditAdAccountID(adAccountID)
 	if err != nil {
 		return nil, err
 	}
 	path := pathAdAccountPixels(id)
 	query := standardPagedListQuery(in.pageSize, in.pageToken)
-	return s.redditGET(ctx, userID, path, query, in.pageToken)
+	return s.redditGET(ctx, mcpTool, userID, path, query, in.pageToken)
 }
 
-func (s *service) listUserCustomAudiencesForAdAccount(ctx context.Context, userID, adAccountID string, in listUserCustomAudiencesInput) (json.RawMessage, error) {
+func (s *service) listUserCustomAudiencesForAdAccount(ctx context.Context, mcpTool, userID, adAccountID string, in listUserCustomAudiencesInput) (json.RawMessage, error) {
 	id, err := requireRedditAdAccountID(adAccountID)
 	if err != nil {
 		return nil, err
@@ -195,10 +195,10 @@ func (s *service) listUserCustomAudiencesForAdAccount(ctx context.Context, userI
 	}
 	path := pathAdAccountCustomAudiences(id)
 	query := buildUserCustomAudiencesQuery(in.pageSize, in.pageToken, nameQuery)
-	return s.redditGET(ctx, userID, path, query, in.pageToken)
+	return s.redditGET(ctx, mcpTool, userID, path, query, in.pageToken)
 }
 
-func (s *service) generateBidSuggestion(ctx context.Context, userID, adAccountID string, in generateBidSuggestionInput) (json.RawMessage, error) {
+func (s *service) generateBidSuggestion(ctx context.Context, mcpTool, userID, adAccountID string, in generateBidSuggestionInput) (json.RawMessage, error) {
 	id, err := requireRedditAdAccountID(adAccountID)
 	if err != nil {
 		return nil, err
@@ -210,10 +210,10 @@ func (s *service) generateBidSuggestion(ctx context.Context, userID, adAccountID
 	inner["ad_account_id"] = id
 	body := map[string]any{"data": inner}
 	path := pathForecastingBidSuggestions()
-	return s.redditPOST(ctx, userID, path, nil, body, "")
+	return s.redditPOST(ctx, mcpTool, userID, path, nil, body, "")
 }
 
-func (s *service) createReportForAdAccount(ctx context.Context, userID, adAccountID string, in createReportInput) (json.RawMessage, error) {
+func (s *service) createReportForAdAccount(ctx context.Context, mcpTool, userID, adAccountID string, in createReportInput) (json.RawMessage, error) {
 	id, err := requireRedditAdAccountID(adAccountID)
 	if err != nil {
 		return nil, err
@@ -242,7 +242,7 @@ func (s *service) createReportForAdAccount(ctx context.Context, userID, adAccoun
 	}
 	query := buildReportQuery(in)
 	path := pathAdAccountReports(id)
-	return s.redditPOST(ctx, userID, path, query, body, in.pageToken)
+	return s.redditPOST(ctx, mcpTool, userID, path, query, body, in.pageToken)
 }
 
 func requireRedditAdAccountID(adAccountID string) (string, error) {
@@ -308,19 +308,19 @@ func nonemptyStrings(slice []string) []string {
 }
 
 // redditGET uses a plain gateway GET when pageToken is set (pagination follow-up), otherwise refresh-on-unauthorized.
-func (s *service) redditGET(ctx context.Context, userID, apiPath string, query map[string]string, pageToken string) (json.RawMessage, error) {
+func (s *service) redditGET(ctx context.Context, mcpTool, userID, apiPath string, query map[string]string, pageToken string) (json.RawMessage, error) {
 	if strings.TrimSpace(pageToken) != "" {
-		return s.proxy.get(ctx, userID, apiPath, query)
+		return s.proxy.get(ctx, mcpTool, userID, apiPath, query)
 	}
-	return s.proxy.getWithRefresh(ctx, userID, apiPath, query)
+	return s.proxy.getWithRefresh(ctx, mcpTool, userID, apiPath, query)
 }
 
 // redditPOST uses a plain gateway POST when pageToken is set (pagination follow-up), otherwise refresh-on-unauthorized.
-func (s *service) redditPOST(ctx context.Context, userID, apiPath string, query map[string]string, body any, pageToken string) (json.RawMessage, error) {
+func (s *service) redditPOST(ctx context.Context, mcpTool, userID, apiPath string, query map[string]string, body any, pageToken string) (json.RawMessage, error) {
 	if strings.TrimSpace(pageToken) != "" {
-		return s.proxy.postJSON(ctx, userID, apiPath, query, body)
+		return s.proxy.postJSON(ctx, mcpTool, userID, apiPath, query, body)
 	}
-	return s.proxy.postJSONWithRefresh(ctx, userID, apiPath, query, body)
+	return s.proxy.postJSONWithRefresh(ctx, mcpTool, userID, apiPath, query, body)
 }
 
 func buildBusinessesQuery(in listBusinessesInput) map[string]string {

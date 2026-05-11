@@ -17,47 +17,54 @@ import (
 
 const platformName = "linkedin"
 
+const (
+	toolLinkedInListAdAccounts  = "linkedin_list_ad_accounts"
+	toolLinkedInGetCampaigns    = "linkedin_get_campaigns"
+	toolLinkedInGetAdAnalytics  = "linkedin_get_ad_analytics"
+	toolLinkedInSearchCreatives = "linkedin_search_creatives"
+)
+
 func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error {
 	tools := []registry.ToolDefinition{
 		{
-			Name:               "linkedin_list_ad_accounts",
+			Name:               toolLinkedInListAdAccounts,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Lists LinkedIn ad accounts available to the authenticated user.",
 			Description:        "Fetches LinkedIn ad accounts with optional filters for status, IDs, names, and pagination.",
 			InputSchema:        listAdAccountsSchema(),
 			RequiresConnection: true,
-			Execute:            listAdAccountsExecutor(gatewayClient),
+			Execute:            listAdAccountsExecutor(gatewayClient, toolLinkedInListAdAccounts),
 		},
 		{
-			Name:               "linkedin_get_campaigns",
+			Name:               toolLinkedInGetCampaigns,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Fetches LinkedIn campaigns for one ad account.",
 			Description:        "Fetches campaigns with optional status, campaign group, type, name, test, and paging filters.",
 			InputSchema:        getCampaignsSchema(),
 			RequiresConnection: true,
-			Execute:            getCampaignsExecutor(gatewayClient),
+			Execute:            getCampaignsExecutor(gatewayClient, toolLinkedInGetCampaigns),
 		},
 		{
-			Name:               "linkedin_get_ad_analytics",
+			Name:               toolLinkedInGetAdAnalytics,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Fetches LinkedIn ad analytics by account/campaign grouping.",
 			Description:        "Fetches analytics metrics for LinkedIn ads by pivot and date range.",
 			InputSchema:        getAnalyticsSchema(),
 			RequiresConnection: true,
-			Execute:            getAnalyticsExecutor(gatewayClient),
+			Execute:            getAnalyticsExecutor(gatewayClient, toolLinkedInGetAdAnalytics),
 		},
 		{
-			Name:               "linkedin_search_creatives",
+			Name:               toolLinkedInSearchCreatives,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Lists LinkedIn creatives for selected campaign URNs.",
 			Description:        "Fetches creatives via LinkedIn criteria finder for one account and one or more campaign IDs/URNs.",
 			InputSchema:        searchCreativesSchema(),
 			RequiresConnection: true,
-			Execute:            searchCreativesExecutor(gatewayClient),
+			Execute:            searchCreativesExecutor(gatewayClient, toolLinkedInSearchCreatives),
 		},
 	}
 
@@ -69,7 +76,7 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error 
 	return nil
 }
 
-func listAdAccountsExecutor(gatewayClient *gateway.Client) registry.Executor {
+func listAdAccountsExecutor(gatewayClient *gateway.Client, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		query := map[string]string{"q": "search"}
 		appendListFinder(query, "status", toStringSlice(params["status_filter"]))
@@ -86,7 +93,7 @@ func listAdAccountsExecutor(gatewayClient *gateway.Client) registry.Executor {
 			query["start"] = strconv.Itoa(start)
 		}
 
-		return proxyLinkedInJSON(ctx, gatewayClient, userID, "GET", "adAccounts", query, nil, nil)
+		return proxyLinkedInJSON(ctx, gatewayClient, userID, mcpTool, "GET", "adAccounts", query, nil, nil)
 	}
 }
 
@@ -95,7 +102,7 @@ const (
 	maxAutoPaginatePages     = 20
 )
 
-func getCampaignsExecutor(gatewayClient *gateway.Client) registry.Executor {
+func getCampaignsExecutor(gatewayClient *gateway.Client, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		accountID := strings.TrimSpace(toString(params["account_id"]))
 		if accountID == "" {
@@ -131,14 +138,14 @@ func getCampaignsExecutor(gatewayClient *gateway.Client) registry.Executor {
 		}
 
 		if !autoPaginate {
-			return proxyLinkedInJSON(ctx, gatewayClient, userID, "GET", apiPath, query, nil, nil)
+			return proxyLinkedInJSON(ctx, gatewayClient, userID, mcpTool, "GET", apiPath, query, nil, nil)
 		}
 
 		allElements := make([]any, 0)
 		var lastMeta map[string]any
 
 		for range maxAutoPaginatePages {
-			raw, err := proxyLinkedInJSON(ctx, gatewayClient, userID, "GET", apiPath, query, nil, nil)
+			raw, err := proxyLinkedInJSON(ctx, gatewayClient, userID, mcpTool, "GET", apiPath, query, nil, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -171,7 +178,7 @@ func getCampaignsExecutor(gatewayClient *gateway.Client) registry.Executor {
 	}
 }
 
-func getAnalyticsExecutor(gatewayClient *gateway.Client) registry.Executor {
+func getAnalyticsExecutor(gatewayClient *gateway.Client, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		accountID := strings.TrimSpace(toString(params["account_id"]))
 		if accountID == "" {
@@ -229,11 +236,11 @@ func getAnalyticsExecutor(gatewayClient *gateway.Client) registry.Executor {
 			query["sortBy"] = fmt.Sprintf("(field:%s,order:%s)", sortField, sortOrder)
 		}
 
-		return proxyLinkedInJSON(ctx, gatewayClient, userID, "GET", "adAnalytics", query, nil, nil)
+		return proxyLinkedInJSON(ctx, gatewayClient, userID, mcpTool, "GET", "adAnalytics", query, nil, nil)
 	}
 }
 
-func searchCreativesExecutor(gatewayClient *gateway.Client) registry.Executor {
+func searchCreativesExecutor(gatewayClient *gateway.Client, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		accountID := strings.TrimSpace(toString(params["account_id"]))
 		if accountID == "" {
@@ -264,19 +271,19 @@ func searchCreativesExecutor(gatewayClient *gateway.Client) registry.Executor {
 
 		headers := map[string]string{"X-RestLi-Method": "FINDER"}
 		path := fmt.Sprintf("adAccounts/%s/creatives", url.PathEscape(accountID))
-		return proxyLinkedInJSON(ctx, gatewayClient, userID, "GET", path, query, nil, headers)
+		return proxyLinkedInJSON(ctx, gatewayClient, userID, mcpTool, "GET", path, query, nil, headers)
 	}
 }
 
-func proxyLinkedInJSON(ctx context.Context, gatewayClient *gateway.Client, userID, method, path string, query map[string]string, body any, extraHeaders map[string]string) (any, error) {
+func proxyLinkedInJSON(ctx context.Context, gatewayClient *gateway.Client, userID, mcpTool, method, path string, query map[string]string, body any, extraHeaders map[string]string) (any, error) {
 	headers := map[string]string{
-		"Linkedin-Version":         "202504",
+		"Linkedin-Version":          "202504",
 		"X-Restli-Protocol-Version": "2.0.0",
 	}
 	for key, value := range extraHeaders {
 		headers[key] = value
 	}
-	resp, err := gatewayClient.ProxyProviderOrRefresh(ctx, platformName, userID, method, path, query, body, headers)
+	resp, err := gatewayClient.ProxyProviderOrRefresh(ctx, platformName, mcpTool, userID, method, path, query, body, headers)
 	if err != nil {
 		return nil, err
 	}

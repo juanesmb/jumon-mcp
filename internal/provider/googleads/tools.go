@@ -13,6 +13,14 @@ import (
 
 const platformName = "google"
 
+const (
+	toolGoogleListAdAccounts             = "google_list_ad_accounts"
+	toolGoogleListClientAccountsUnderMgr = "google_list_client_accounts_under_manager"
+	toolGoogleSearchCampaigns            = "google_search_campaigns"
+	toolGoogleSearchAdGroups             = "google_search_ad_groups"
+	toolGoogleSearchAds                  = "google_search_ads"
+)
+
 type Config struct {
 	APIVersion string
 }
@@ -24,54 +32,54 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client, config
 
 	tools := []registry.ToolDefinition{
 		{
-			Name:               "google_list_ad_accounts",
+			Name:               toolGoogleListAdAccounts,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Lists Google Ads customer IDs accessible to the connected user.",
 			Description:        "Calls customers:listAccessibleCustomers and returns accessible customer resource names.",
 			InputSchema:        map[string]any{"type": "object"},
 			RequiresConnection: true,
-			Execute:            listAdAccountsExecutor(gatewayClient, config),
+			Execute:            listAdAccountsExecutor(gatewayClient, config, toolGoogleListAdAccounts),
 		},
 		{
-			Name:               "google_list_client_accounts_under_manager",
+			Name:               toolGoogleListClientAccountsUnderMgr,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Lists non-manager client accounts under one manager account.",
 			Description:        "Runs a GAQL customer_client query under an MCC manager account.",
 			InputSchema:        listClientAccountsSchema(),
 			RequiresConnection: true,
-			Execute:            listClientAccountsExecutor(gatewayClient, config),
+			Execute:            listClientAccountsExecutor(gatewayClient, config, toolGoogleListClientAccountsUnderMgr),
 		},
 		{
-			Name:               "google_search_campaigns",
+			Name:               toolGoogleSearchCampaigns,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Searches Google Ads campaigns and core metrics.",
 			Description:        "Runs a GAQL campaign query with optional status/name/date filters.",
 			InputSchema:        searchCampaignsSchema(),
 			RequiresConnection: true,
-			Execute:            searchCampaignsExecutor(gatewayClient, config),
+			Execute:            searchCampaignsExecutor(gatewayClient, config, toolGoogleSearchCampaigns),
 		},
 		{
-			Name:               "google_search_ad_groups",
+			Name:               toolGoogleSearchAdGroups,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Searches Google Ads ad groups and key metrics.",
 			Description:        "Runs a GAQL ad_group query with optional campaign/status/date filters.",
 			InputSchema:        searchAdGroupsSchema(),
 			RequiresConnection: true,
-			Execute:            searchAdGroupsExecutor(gatewayClient, config),
+			Execute:            searchAdGroupsExecutor(gatewayClient, config, toolGoogleSearchAdGroups),
 		},
 		{
-			Name:               "google_search_ads",
+			Name:               toolGoogleSearchAds,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Searches Google Ads ad-level entities and metrics.",
 			Description:        "Runs a GAQL ad_group_ad query with optional campaign/adgroup/status/date filters.",
 			InputSchema:        searchAdsSchema(),
 			RequiresConnection: true,
-			Execute:            searchAdsExecutor(gatewayClient, config),
+			Execute:            searchAdsExecutor(gatewayClient, config, toolGoogleSearchAds),
 		},
 	}
 
@@ -83,15 +91,15 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client, config
 	return nil
 }
 
-func listAdAccountsExecutor(gatewayClient *gateway.Client, config Config) registry.Executor {
+func listAdAccountsExecutor(gatewayClient *gateway.Client, config Config, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		_ = params
 		path := fmt.Sprintf("%s/customers:listAccessibleCustomers", config.APIVersion)
-		return proxyGoogleJSON(ctx, gatewayClient, userID, "GET", path, nil, nil)
+		return proxyGoogleJSON(ctx, gatewayClient, userID, mcpTool, "GET", path, nil, nil)
 	}
 }
 
-func listClientAccountsExecutor(gatewayClient *gateway.Client, config Config) registry.Executor {
+func listClientAccountsExecutor(gatewayClient *gateway.Client, config Config, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		customerID := normalizeCustomerID(params["customer_id"])
 		if customerID == "" {
@@ -104,11 +112,11 @@ func listClientAccountsExecutor(gatewayClient *gateway.Client, config Config) re
 			"ORDER BY customer_client.id",
 		}, " ")
 		loginID := normalizeCustomerID(params["login_customer_id"])
-		return googleSearch(ctx, gatewayClient, config.APIVersion, userID, customerID, loginID, query)
+		return googleSearch(ctx, gatewayClient, config.APIVersion, mcpTool, userID, customerID, loginID, query)
 	}
 }
 
-func searchCampaignsExecutor(gatewayClient *gateway.Client, config Config) registry.Executor {
+func searchCampaignsExecutor(gatewayClient *gateway.Client, config Config, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		customerID := normalizeCustomerID(params["customer_id"])
 		if customerID == "" {
@@ -126,11 +134,11 @@ func searchCampaignsExecutor(gatewayClient *gateway.Client, config Config) regis
 			"ORDER BY campaign.id DESC",
 		}, " ")
 		loginID := normalizeCustomerID(params["login_customer_id"])
-		return googleSearch(ctx, gatewayClient, config.APIVersion, userID, customerID, loginID, query)
+		return googleSearch(ctx, gatewayClient, config.APIVersion, mcpTool, userID, customerID, loginID, query)
 	}
 }
 
-func searchAdGroupsExecutor(gatewayClient *gateway.Client, config Config) registry.Executor {
+func searchAdGroupsExecutor(gatewayClient *gateway.Client, config Config, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		customerID := normalizeCustomerID(params["customer_id"])
 		if customerID == "" {
@@ -148,11 +156,11 @@ func searchAdGroupsExecutor(gatewayClient *gateway.Client, config Config) regist
 			"ORDER BY ad_group.id DESC",
 		}, " ")
 		loginID := normalizeCustomerID(params["login_customer_id"])
-		return googleSearch(ctx, gatewayClient, config.APIVersion, userID, customerID, loginID, query)
+		return googleSearch(ctx, gatewayClient, config.APIVersion, mcpTool, userID, customerID, loginID, query)
 	}
 }
 
-func searchAdsExecutor(gatewayClient *gateway.Client, config Config) registry.Executor {
+func searchAdsExecutor(gatewayClient *gateway.Client, config Config, mcpTool string) registry.Executor {
 	return func(ctx context.Context, userID string, params map[string]any) (any, error) {
 		customerID := normalizeCustomerID(params["customer_id"])
 		if customerID == "" {
@@ -171,11 +179,11 @@ func searchAdsExecutor(gatewayClient *gateway.Client, config Config) registry.Ex
 			"ORDER BY ad_group_ad.ad.id DESC",
 		}, " ")
 		loginID := normalizeCustomerID(params["login_customer_id"])
-		return googleSearch(ctx, gatewayClient, config.APIVersion, userID, customerID, loginID, query)
+		return googleSearch(ctx, gatewayClient, config.APIVersion, mcpTool, userID, customerID, loginID, query)
 	}
 }
 
-func googleSearch(ctx context.Context, gatewayClient *gateway.Client, version, userID, customerID, loginCustomerID, query string) (any, error) {
+func googleSearch(ctx context.Context, gatewayClient *gateway.Client, version, mcpTool, userID, customerID, loginCustomerID, query string) (any, error) {
 	path := fmt.Sprintf("%s/customers/%s/googleAds:search", version, customerID)
 	headers := map[string]string{}
 	if loginCustomerID != "" {
@@ -187,11 +195,11 @@ func googleSearch(ctx context.Context, gatewayClient *gateway.Client, version, u
 			"returnTotalResultsCount": true,
 		},
 	}
-	return proxyGoogleJSON(ctx, gatewayClient, userID, "POST", path, body, headers)
+	return proxyGoogleJSON(ctx, gatewayClient, userID, mcpTool, "POST", path, body, headers)
 }
 
-func proxyGoogleJSON(ctx context.Context, gatewayClient *gateway.Client, userID, method, path string, body any, headers map[string]string) (any, error) {
-	resp, err := gatewayClient.ProxyProviderOrRefresh(ctx, platformName, userID, method, path, nil, body, headers)
+func proxyGoogleJSON(ctx context.Context, gatewayClient *gateway.Client, userID, mcpTool, method, path string, body any, headers map[string]string) (any, error) {
+	resp, err := gatewayClient.ProxyProviderOrRefresh(ctx, platformName, mcpTool, userID, method, path, nil, body, headers)
 	if err != nil {
 		return nil, err
 	}
