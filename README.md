@@ -18,7 +18,8 @@ Optional:
 - `CLERK_AUDIENCE`
 - `MCP_REQUIRED_SCOPE`
 - `AUTHORIZATION_SERVER_URL` (defaults to `CLERK_ISSUER`)
-- `PUBLIC_BASE_URL`
+- `PUBLIC_BASE_URL` — **canonical public origin for this MCP deployment, no trailing slash and no `/mcp` path.**  
+  MCP clients compare this to the connector URL OAuth metadata (`resource`). If you use a custom domain (e.g. `https://mcp.example.com`), set `PUBLIC_BASE_URL=https://mcp.example.com` on Cloud Run—even though the container still receives requests on `*.run.app`. If unset, the server uses `X-Forwarded-*` headers or `Host` (which may still be `*.run.app` and trigger “protected resource does not match” in Cursor).
 - `PORT` (default `8080`)
 - `MCP_DEBUG_AUTH` (`true` to enable verbose auth logs)
 - `GOOGLE_ADS_API_VERSION` (default `v22`)

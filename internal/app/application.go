@@ -121,11 +121,12 @@ func oauthProtectedResourceHandler(cfg config.Config) http.HandlerFunc {
 		if publicURL == "" {
 			scheme := "https"
 			if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
-				scheme = proto
+				scheme = strings.TrimSpace(strings.Split(proto, ",")[0])
 			} else if r.TLS == nil {
 				scheme = "http"
 			}
-			publicURL = fmt.Sprintf("%s://%s", scheme, r.Host)
+			host := requestPublicHost(r)
+			publicURL = fmt.Sprintf("%s://%s", scheme, host)
 		}
 
 		resource := appendURLPath(publicURL, cfg.Server.Path)
@@ -161,4 +162,13 @@ func appendURLPath(baseURL, path string) string {
 		return ""
 	}
 	return base + normalized
+}
+
+// requestPublicHost returns the host clients use to reach this service. Prefer proxy
+// headers so OAuth "resource" matches the public custom domain behind Cloud Run / LB.
+func requestPublicHost(r *http.Request) string {
+	if fh := strings.TrimSpace(r.Header.Get("X-Forwarded-Host")); fh != "" {
+		return strings.TrimSpace(strings.Split(fh, ",")[0])
+	}
+	return r.Host
 }
