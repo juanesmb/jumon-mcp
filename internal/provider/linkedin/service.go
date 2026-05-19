@@ -186,10 +186,18 @@ func (s *service) getAnalytics(ctx context.Context, userID, mcpTool string, in g
 	if granularity := strings.TrimSpace(in.timeGranularity); granularity != "" {
 		query["timeGranularity"] = granularity
 	}
-	if fields := in.fields; len(fields) > 0 {
-		if len(in.pivots) > 0 && !slices.Contains(fields, "pivotValues") {
-			fields = append([]string{"pivotValues"}, fields...)
+	fields := in.fields
+	if len(in.pivots) > 0 {
+		if len(fields) == 0 {
+			fields = []string{"pivotValues", fieldApproximateMemberReach, fieldImpressions}
+		} else {
+			if !slices.Contains(fields, "pivotValues") {
+				fields = append([]string{"pivotValues"}, fields...)
+			}
+			fields = ensureDeliveryMetricFields(fields)
 		}
+	}
+	if len(fields) > 0 {
 		query["fields"] = strings.Join(fields, ",")
 	}
 
@@ -211,7 +219,11 @@ func (s *service) getAnalytics(ctx context.Context, userID, mcpTool string, in g
 		query["sortBy"] = fmt.Sprintf("(field:%s,order:%s)", sortField, sortOrder)
 	}
 
-	return s.proxy.requestJSON(ctx, userID, mcpTool, "GET", "adAnalytics", query, nil, nil)
+	raw, err := s.proxy.requestJSON(ctx, userID, mcpTool, "GET", "adAnalytics", query, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return enrichAnalyticsResponse(raw), nil
 }
 
 func (s *service) searchCreatives(ctx context.Context, userID, mcpTool string, in searchCreativesInput) (any, error) {

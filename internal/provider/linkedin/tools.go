@@ -195,7 +195,7 @@ func getAnalyticsSchema() map[string]any {
 			"finder_type": map[string]any{
 				"type":        "string",
 				"enum":        []string{"analytics", "statistics", "attributedRevenueMetrics"},
-				"description": "LinkedIn finder to use. 'analytics' covers standard metrics (default). 'statistics' returns reach and frequency data.",
+				"description": "LinkedIn finder to use. Default 'analytics' for delivery and performance metrics.",
 			},
 			"campaign_group_ids": map[string]any{
 				"type":        "array",
@@ -213,9 +213,12 @@ func getAnalyticsSchema() map[string]any {
 				"description": "Numeric creative IDs to scope results.",
 			},
 			"fields": map[string]any{
-				"type":        "array",
-				"items":       map[string]any{"type": "string"},
-				"description": "Metric fields to return, e.g. impressions, clicks, spend, costInLocalCurrency, videoViews, landingPageClicks, likes, comments, shares, follows, companyPageClicks, totalEngagements, leadGenerationMailContactInfoShares. Omit to return all fields. Note: pivotValues is always injected automatically when pivots are set.",
+				"type":  "array",
+				"items": map[string]any{"type": "string"},
+				"description": "LinkedIn metric fields to return. Delivery metrics: approximateMemberReach (Campaign Manager Reach), audiencePenetration, impressions. " +
+					"When pivots are set, pivotValues, approximateMemberReach, and impressions are auto-included if missing. " +
+					"The response also includes averageFrequency (derived as impressions / approximateMemberReach, matching Campaign Manager Average frequency) when reach data is present. " +
+					"Other common fields: costInLocalCurrency, clicks, videoViews, landingPageClicks, totalEngagements. Date range must be <= 92 days for reach metrics.",
 			},
 			"sort_by_field": map[string]any{
 				"type":        "string",
