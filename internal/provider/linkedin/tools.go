@@ -59,7 +59,7 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error 
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Fetches LinkedIn ad analytics by account/campaign grouping.",
-			Description:        "Fetches analytics metrics for LinkedIn ads by pivot and date range.",
+			Description:        linkedInGetAdAnalyticsToolDescription(),
 			InputSchema:        getAnalyticsSchema(),
 			RequiresConnection: true,
 			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
@@ -183,9 +183,19 @@ func getAnalyticsSchema() map[string]any {
 				"description": "Inclusive end date in YYYY-MM-DD format. Defaults to today when omitted.",
 			},
 			"pivots": map[string]any{
-				"type":        "array",
-				"items":       map[string]any{"type": "string"},
-				"description": "Grouping dimension(s). Common values: CAMPAIGN, CAMPAIGN_GROUP, CREATIVE, COMPANY, MEMBER_COMPANY_SIZE, MEMBER_INDUSTRY, MEMBER_SENIORITY. Only the first pivot value is used. When pivoting by CAMPAIGN, each row's pivotValues field contains the campaign URN — pivotValues is always included automatically.",
+				"type":  "array",
+				"items": map[string]any{"type": "string"},
+				"description": "Grouping dimension. Only the first value is used (finder_type analytics). " +
+					"Structure: ACCOUNT, CAMPAIGN_GROUP, CAMPAIGN, CREATIVE, SHARE, COMPANY, CONVERSION. " +
+					"Demographics: MEMBER_COMPANY_SIZE, MEMBER_INDUSTRY, MEMBER_SENIORITY, MEMBER_JOB_TITLE, MEMBER_JOB_FUNCTION, MEMBER_COUNTRY_V2, MEMBER_REGION_V2. " +
+					"Other: SERVING_LOCATION, PLACEMENT_NAME, OBJECTIVE_TYPE, CARD_INDEX, IMPRESSION_DEVICE_TYPE, EVENT_STAGE. " +
+					"Reach metrics require non-MEMBER_* pivots. Each row includes pivotValues (entity URN).",
+				"examples": [][]string{
+					{"CAMPAIGN"},
+					{"CAMPAIGN_GROUP"},
+					{"ACCOUNT"},
+					{"CREATIVE"},
+				},
 			},
 			"time_granularity": map[string]any{
 				"type":        "string",
@@ -212,14 +222,7 @@ func getAnalyticsSchema() map[string]any {
 				"items":       map[string]any{"type": "string"},
 				"description": "Numeric creative IDs to scope results.",
 			},
-			"fields": map[string]any{
-				"type":  "array",
-				"items": map[string]any{"type": "string"},
-				"description": "LinkedIn metric fields to return. Delivery metrics: approximateMemberReach (Campaign Manager Reach), audiencePenetration, impressions. " +
-					"When pivots are set, pivotValues, approximateMemberReach, and impressions are auto-included if missing. " +
-					"The response also includes averageFrequency (derived as impressions / approximateMemberReach, matching Campaign Manager Average frequency) when reach data is present. " +
-					"Other common fields: costInLocalCurrency, clicks, videoViews, landingPageClicks, totalEngagements. Date range must be <= 92 days for reach metrics.",
-			},
+			"fields": analyticsFieldsSchemaProperty(),
 			"sort_by_field": map[string]any{
 				"type":        "string",
 				"description": "Metric field name to sort results by, e.g. spend.",
