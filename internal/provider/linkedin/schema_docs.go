@@ -205,6 +205,7 @@ func buildAnalyticsFieldsDescription() string {
 func linkedInGetAdAnalyticsToolDescription() string {
 	return "Fetches LinkedIn ad performance metrics via adAnalytics. " +
 		"Use fields to request any supported metric (see input schema catalog). " +
-		"Combine with linkedin_get_campaigns to map pivotValues to campaign names. " +
+		"Combine with linkedin_get_campaigns to map pivotValues to campaign names; use linkedin_get_campaign_groups for funnel-stage IDs. " +
+		"For multi-pivot breakdowns (e.g. campaign by placement), set finder_type statistics with up to 3 pivots. " +
 		"For WoW reports, call twice (current week + prior week) with time_granularity ALL."
 }

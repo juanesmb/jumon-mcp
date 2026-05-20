@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -45,6 +44,17 @@ type getCampaignsInput struct {
 	autoPaginate   bool
 	pageSize       int
 	pageToken      string
+}
+
+type getCampaignGroupsInput struct {
+	accountID    string
+	statusFilter []string
+	nameFilter   []string
+	testFilter   *bool
+	sortOrder    string
+	autoPaginate bool
+	pageSize     int
+	pageToken    string
 }
 
 type getAnalyticsInput struct {
@@ -91,132 +101,42 @@ func (s *service) listAdAccounts(ctx context.Context, userID, mcpTool string, in
 
 func (s *service) getCampaigns(ctx context.Context, userID, mcpTool string, in getCampaignsInput) (any, error) {
 	apiPath := fmt.Sprintf("adAccounts/%s/adCampaigns", url.PathEscape(in.accountID))
-	query := map[string]string{"q": "search"}
-	appendListFinder(query, "status", in.statusFilter)
-	appendListFinder(query, "campaignGroup", toCampaignGroupURNs(in.campaignGroups))
-	appendListFinder(query, "type", in.typeFilter)
-	appendListFinder(query, "name", in.nameFilter)
-	if in.testFilter != nil {
-		query["search"] = mergeSearchItem(query["search"], fmt.Sprintf("test:%t", *in.testFilter))
-	}
-	if strings.TrimSpace(in.sortOrder) != "" {
-		query["sortOrder"] = strings.TrimSpace(in.sortOrder)
-	}
+	query := buildLinkedInSearchQuery(linkedInSearchQuery{
+		statusFilter: in.statusFilter,
+		typeFilter:   in.typeFilter,
+		nameFilter:   in.nameFilter,
+		testFilter:   in.testFilter,
+		sortOrder:    in.sortOrder,
+		pageSize:     in.pageSize,
+		pageToken:    in.pageToken,
+	})
+	autoPaginate := resolveAutoPaginate(in.autoPaginate, in.pageToken, len(in.campaignGroups) > 0)
 
-	query["pageSize"] = strconv.Itoa(in.pageSize)
-
-	// When the caller provides an explicit page_token they want one page only.
-	if strings.TrimSpace(in.pageToken) != "" {
-		query["pageToken"] = strings.TrimSpace(in.pageToken)
-		in.autoPaginate = false
-	}
-
-	if !in.autoPaginate {
-		return s.proxy.requestJSON(ctx, userID, mcpTool, "GET", apiPath, query, nil, nil)
-	}
-
-	allElements := make([]any, 0)
-	var lastMeta map[string]any
-
-	for range maxAutoPaginatePages {
-		raw, err := s.proxy.requestJSON(ctx, userID, mcpTool, "GET", apiPath, query, nil, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		pageMap, ok := raw.(map[string]any)
-		if !ok {
-			return raw, nil
-		}
-
-		if elements, ok := pageMap["elements"].([]any); ok {
-			allElements = append(allElements, elements...)
-		}
-		if meta, ok := pageMap["metadata"].(map[string]any); ok {
-			lastMeta = meta
-		}
-
-		nextToken, _ := lastMeta["nextPageToken"].(string)
-		if nextToken == "" {
-			break
-		}
-		query["pageToken"] = nextToken
-	}
-
-	result := map[string]any{"elements": allElements}
-	if lastMeta != nil {
-		delete(lastMeta, "nextPageToken")
-		result["metadata"] = lastMeta
-	}
-	return result, nil
-}
-
-func (s *service) getAnalytics(ctx context.Context, userID, mcpTool string, in getAnalyticsInput) (any, error) {
-	accountID := strings.TrimSpace(in.accountID)
-	startDate := strings.TrimSpace(in.startDate)
-	if accountID == "" {
-		return nil, fmt.Errorf("account_id is required")
-	}
-	if startDate == "" {
-		return nil, fmt.Errorf("date_range_start is required")
-	}
-
-	start, err := parseDate(startDate)
+	raw, err := fetchSearchPages(ctx, s.proxy, userID, mcpTool, apiPath, query, autoPaginate)
 	if err != nil {
 		return nil, err
 	}
+	return filterCampaignsByGroup(raw, in.campaignGroups), nil
+}
 
-	finderType := strings.TrimSpace(in.finderType)
-	if finderType == "" {
-		finderType = "analytics"
-	}
+func (s *service) getCampaignGroups(ctx context.Context, userID, mcpTool string, in getCampaignGroupsInput) (any, error) {
+	apiPath := fmt.Sprintf("adAccounts/%s/adCampaignGroups", url.PathEscape(in.accountID))
+	query := buildLinkedInSearchQuery(linkedInSearchQuery{
+		statusFilter: in.statusFilter,
+		nameFilter:   in.nameFilter,
+		testFilter:   in.testFilter,
+		sortOrder:    in.sortOrder,
+		pageSize:     in.pageSize,
+		pageToken:    in.pageToken,
+	})
+	autoPaginate := resolveAutoPaginate(in.autoPaginate, in.pageToken, false)
+	return fetchSearchPages(ctx, s.proxy, userID, mcpTool, apiPath, query, autoPaginate)
+}
 
-	query := map[string]string{
-		"q":        finderType,
-		"accounts": fmt.Sprintf("List(%s)", url.QueryEscape("urn:li:sponsoredAccount:"+accountID)),
-		"dateRange": fmt.Sprintf(
-			"(start:(year:%d,month:%d,day:%d)%s)",
-			start.Year(), int(start.Month()), start.Day(), buildDateRangeEnd(in.endDate),
-		),
-	}
-
-	if pivots := in.pivots; len(pivots) > 0 {
-		query["pivot"] = strings.TrimSpace(pivots[0])
-	}
-	if granularity := strings.TrimSpace(in.timeGranularity); granularity != "" {
-		query["timeGranularity"] = granularity
-	}
-	fields := in.fields
-	if len(in.pivots) > 0 {
-		if len(fields) == 0 {
-			fields = []string{"pivotValues", fieldApproximateMemberReach, fieldImpressions}
-		} else {
-			if !slices.Contains(fields, "pivotValues") {
-				fields = append([]string{"pivotValues"}, fields...)
-			}
-			fields = ensureDeliveryMetricFields(fields)
-		}
-	}
-	if len(fields) > 0 {
-		query["fields"] = strings.Join(fields, ",")
-	}
-
-	if campaignIDs := in.campaignIDs; len(campaignIDs) > 0 {
-		query["campaigns"] = fmt.Sprintf("List(%s)", strings.Join(toURNList("urn:li:sponsoredCampaign:", campaignIDs), ","))
-	}
-	if creativeIDs := in.creativeIDs; len(creativeIDs) > 0 {
-		query["creatives"] = fmt.Sprintf("List(%s)", strings.Join(toURNList("urn:li:sponsoredCreative:", creativeIDs), ","))
-	}
-	if groups := in.campaignGroupIDs; len(groups) > 0 {
-		query["campaignGroups"] = fmt.Sprintf("List(%s)", strings.Join(toURNList("urn:li:sponsoredCampaignGroup:", groups), ","))
-	}
-
-	if sortField := strings.TrimSpace(in.sortByField); sortField != "" {
-		sortOrder := strings.TrimSpace(in.sortByOrder)
-		if sortOrder == "" {
-			sortOrder = "DESCENDING"
-		}
-		query["sortBy"] = fmt.Sprintf("(field:%s,order:%s)", sortField, sortOrder)
+func (s *service) getAnalytics(ctx context.Context, userID, mcpTool string, in getAnalyticsInput) (any, error) {
+	query, err := buildAdAnalyticsQuery(in)
+	if err != nil {
+		return nil, err
 	}
 
 	raw, err := s.proxy.requestJSON(ctx, userID, mcpTool, "GET", "adAnalytics", query, nil, nil)
@@ -279,22 +199,7 @@ func parseGetCampaignsInput(params map[string]any) (getCampaignsInput, error) {
 		return getCampaignsInput{}, fmt.Errorf("account_id is required")
 	}
 
-	autoPaginate := true
-	if autoPageBool, hasAutoPage := params["auto_paginate"].(bool); hasAutoPage {
-		autoPaginate = autoPageBool
-	}
-
-	pageSize := defaultCampaignsPageSize
-	if ps, ok := toInt(params["page_size"]); ok && ps > 0 {
-		pageSize = ps
-	}
-
-	pageToken := strings.TrimSpace(toString(params["page_token"]))
-
-	var testFilter *bool
-	if testValue, ok := params["test_filter"].(bool); ok {
-		testFilter = &testValue
-	}
+	paging := parseSearchPagination(params)
 
 	return getCampaignsInput{
 		accountID:      accountID,
@@ -302,11 +207,31 @@ func parseGetCampaignsInput(params map[string]any) (getCampaignsInput, error) {
 		campaignGroups: toStringSlice(params["campaign_group_filter"]),
 		typeFilter:     toStringSlice(params["type_filter"]),
 		nameFilter:     toStringSlice(params["name_filter"]),
-		testFilter:     testFilter,
+		testFilter:     parseOptionalTestFilter(params),
 		sortOrder:      strings.TrimSpace(toString(params["sort_order"])),
-		autoPaginate:   autoPaginate,
-		pageSize:       pageSize,
-		pageToken:      pageToken,
+		autoPaginate:   paging.autoPaginate,
+		pageSize:       paging.pageSize,
+		pageToken:      paging.pageToken,
+	}, nil
+}
+
+func parseGetCampaignGroupsInput(params map[string]any) (getCampaignGroupsInput, error) {
+	accountID := strings.TrimSpace(toString(params["account_id"]))
+	if accountID == "" {
+		return getCampaignGroupsInput{}, fmt.Errorf("account_id is required")
+	}
+
+	paging := parseSearchPagination(params)
+
+	return getCampaignGroupsInput{
+		accountID:    accountID,
+		statusFilter: toStringSlice(params["status_filter"]),
+		nameFilter:   toStringSlice(params["name_filter"]),
+		testFilter:   parseOptionalTestFilter(params),
+		sortOrder:    strings.TrimSpace(toString(params["sort_order"])),
+		autoPaginate: paging.autoPaginate,
+		pageSize:     paging.pageSize,
+		pageToken:    paging.pageToken,
 	}, nil
 }
 
