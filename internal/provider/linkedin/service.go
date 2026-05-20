@@ -143,7 +143,7 @@ func (s *service) getAnalytics(ctx context.Context, userID, mcpTool string, in g
 	if err != nil {
 		return nil, err
 	}
-	return enrichAnalyticsResponse(raw), nil
+	return enrichAnalyticsResponse(raw, trimPivots(in.pivots)), nil
 }
 
 func (s *service) searchCreatives(ctx context.Context, userID, mcpTool string, in searchCreativesInput) (any, error) {
@@ -176,10 +176,10 @@ func (s *service) searchCreatives(ctx context.Context, userID, mcpTool string, i
 
 func parseListAdAccountsInput(params map[string]any) (listAdAccountsInput, error) {
 	in := listAdAccountsInput{
-		statusFilter:     toStringSlice(params["status_filter"]),
-		accountIDs:       toStringSlice(params["account_ids"]),
-		nameFilter:       toStringSlice(params["name_filter"]),
-		referenceFilter:  toStringSlice(params["reference_filter"]),
+		statusFilter:    toStringSlice(params["status_filter"]),
+		accountIDs:      toStringSlice(params["account_ids"]),
+		nameFilter:      toStringSlice(params["name_filter"]),
+		referenceFilter: toStringSlice(params["reference_filter"]),
 	}
 	if testValue, ok := params["test_filter"].(bool); ok {
 		in.testFilter = &testValue
@@ -281,10 +281,10 @@ func parseSearchCreativesInput(params map[string]any) (searchCreativesInput, err
 	}
 
 	in := searchCreativesInput{
-		accountID:    accountID,
-		campaignIDs:  campaignIDs,
-		sortOrder:    toString(params["sort_order"]),
-		pageToken:    toString(params["page_token"]),
+		accountID:   accountID,
+		campaignIDs: campaignIDs,
+		sortOrder:   toString(params["sort_order"]),
+		pageToken:   toString(params["page_token"]),
 	}
 	if ps, ok := toInt(params["page_size"]); ok && ps > 0 {
 		in.pageSize = &ps

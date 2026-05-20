@@ -13,9 +13,9 @@ const (
 	fieldAverageFrequency       = "averageFrequency"
 )
 
-// enrichAnalyticsResponse adds derived delivery metrics to each analytics element.
+// enrichAnalyticsResponse adds derived delivery metrics and pivot labels to each element.
 // averageFrequency matches Campaign Manager: impressions / reach (unique members).
-func enrichAnalyticsResponse(payload any) any {
+func enrichAnalyticsResponse(payload any, pivots []string) any {
 	root, ok := payload.(map[string]any)
 	if !ok {
 		return payload
@@ -32,6 +32,7 @@ func enrichAnalyticsResponse(payload any) any {
 			continue
 		}
 		enrichAnalyticsElement(row)
+		enrichPivotLabels(row, pivots)
 		elements[i] = row
 	}
 	root["elements"] = elements

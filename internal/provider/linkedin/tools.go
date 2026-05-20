@@ -248,27 +248,33 @@ func getAnalyticsSchema() map[string]any {
 				"items": map[string]any{"type": "string"},
 				"description": "Grouping dimension(s). finder_type analytics (default) uses only the first pivot (singular pivot=). " +
 					"finder_type statistics accepts 1–3 pivots (pivots=List(...)) for multi-dimensional breakdowns, e.g. CAMPAIGN + PLACEMENT_NAME. " +
+					"finder_type attributedRevenueMetrics accepts 1–3 pivots: ACCOUNT, CAMPAIGN_GROUP, or CAMPAIGN only. " +
 					"Structure: ACCOUNT, CAMPAIGN_GROUP, CAMPAIGN, CREATIVE, SHARE, COMPANY, CONVERSION. " +
-					"Demographics: MEMBER_COMPANY_SIZE, MEMBER_INDUSTRY, MEMBER_SENIORITY, MEMBER_JOB_TITLE, MEMBER_JOB_FUNCTION, MEMBER_COUNTRY_V2, MEMBER_REGION_V2. " +
+					"Demographics: MEMBER_COMPANY_SIZE, MEMBER_INDUSTRY, MEMBER_SENIORITY, MEMBER_JOB_TITLE, MEMBER_JOB_FUNCTION, MEMBER_COUNTRY_V2, MEMBER_REGION_V2, MEMBER_COMPANY. " +
 					"Other: SERVING_LOCATION, PLACEMENT_NAME, OBJECTIVE_TYPE, CARD_INDEX, IMPRESSION_DEVICE_TYPE, EVENT_STAGE. " +
-					"Reach metrics require non-MEMBER_* pivots. Each row includes pivotValues (entity URN).",
+					"Reach and averageFrequency are unavailable on MEMBER_* pivots (top-100 values per creative per day; min 3 events per value). Each row includes pivotValues; MEMBER_INDUSTRY responses also include pivotLabels (human-readable industry names).",
 				"examples": [][]string{
 					{"CAMPAIGN"},
 					{"CAMPAIGN_GROUP"},
 					{"ACCOUNT"},
 					{"CREATIVE"},
 					{"CAMPAIGN", "PLACEMENT_NAME"},
+					{"MEMBER_INDUSTRY"},
+					{"MEMBER_SENIORITY"},
+					{"MEMBER_JOB_TITLE"},
 				},
 			},
 			"time_granularity": map[string]any{
 				"type":        "string",
 				"enum":        []string{"ALL", "DAILY", "MONTHLY", "YEARLY"},
-				"description": "Time bucketing. Use ALL for a single aggregate row per pivot entity, DAILY for day-by-day breakdown.",
+				"description": "Time bucketing for finder_type analytics or statistics. Use ALL for a single aggregate row per pivot entity, DAILY for day-by-day breakdown. Not supported for attributedRevenueMetrics.",
 			},
 			"finder_type": map[string]any{
-				"type":        "string",
-				"enum":        []string{"analytics", "statistics", "attributedRevenueMetrics"},
-				"description": "LinkedIn finder to use. Default 'analytics' for delivery and performance metrics (single pivot). Use 'statistics' for up to 3 pivots in one request (e.g. CAMPAIGN + PLACEMENT_NAME). Use 'attributedRevenueMetrics' for CRM-attributed revenue fields.",
+				"type": "string",
+				"enum": []string{"analytics", "statistics", "attributedRevenueMetrics"},
+				"description": "LinkedIn finder to use. Default 'analytics' for delivery and performance metrics (single pivot). " +
+					"Use 'statistics' for up to 3 pivots in one request (e.g. CAMPAIGN + PLACEMENT_NAME). " +
+					"Use 'attributedRevenueMetrics' for CRM-attributed revenue (requires CRM connected to LinkedIn Campaign Manager; date range 30–366 days; no time_granularity; request revenueAttributionMetrics not top-level revenue field names; pivots ACCOUNT, CAMPAIGN_GROUP, or CAMPAIGN; openOpportunities/opportunityAmountInUsd only when date_range_end is today UTC).",
 			},
 			"campaign_group_ids": map[string]any{
 				"type":        "array",

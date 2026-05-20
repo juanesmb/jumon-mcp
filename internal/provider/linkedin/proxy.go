@@ -36,7 +36,7 @@ func (g *linkedinGateway) requestJSON(
 	extraHeaders map[string]string,
 ) (any, error) {
 	headers := map[string]string{
-		"Linkedin-Version":           "202504",
+		"Linkedin-Version":          "202504",
 		"X-Restli-Protocol-Version": "2.0.0",
 	}
 	for key, value := range extraHeaders {
@@ -64,4 +64,3 @@ func (g *linkedinGateway) requestJSON(
 	}
 	return payload, nil
 }
-

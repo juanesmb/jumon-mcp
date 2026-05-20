@@ -125,6 +125,20 @@ var (
 				"postViewRegistrations",
 			},
 		},
+		{
+			category: "Revenue attribution (CRM; finder_type=attributedRevenueMetrics; requires CRM connected to LinkedIn). Request revenueAttributionMetrics (returns all nested metrics) or revenueAttributionMetrics:(revenueWonInUsd,returnOnAdSpend,...). Nested metrics:",
+			fields: []string{
+				"revenueAttributionMetrics",
+				"revenueWonInUsd",
+				"returnOnAdSpend",
+				"closedWonOpportunities",
+				"openOpportunities",
+				"opportunityAmountInUsd",
+				"opportunityWinRate",
+				"averageDealSizeInUsd",
+				"averageDaysToClose",
+			},
+		},
 	}
 
 	linkedInAnalyticsFieldExamples = [][]string{
@@ -168,6 +182,19 @@ var (
 			"costInLocalCurrency",
 			"oneClickLeads",
 		},
+		// CRM revenue attribution (HubSpot, Salesforce, Dynamics via LinkedIn)
+		{
+			"pivotValues",
+			"dateRange",
+			"revenueAttributionMetrics",
+		},
+		// Demographic breakdown (no reach on MEMBER_* pivots)
+		{
+			"pivotValues",
+			"impressions",
+			"clicks",
+			"costInLocalCurrency",
+		},
 	}
 )
 
@@ -184,7 +211,9 @@ func buildAnalyticsFieldsDescription() string {
 	var b strings.Builder
 	b.WriteString("LinkedIn adAnalytics metric field names to return (max 20 per request). ")
 	b.WriteString("Pass any valid API field; names below are the supported catalog. ")
-	b.WriteString("When pivots are set, pivotValues, approximateMemberReach, and impressions are auto-included if missing. ")
+	b.WriteString("When pivots are set on finder_type analytics, pivotValues is auto-included; reach and impressions are auto-included for non-MEMBER_* pivots; demographic pivots default to impressions, clicks, and costInLocalCurrency. ")
+	b.WriteString("For finder_type attributedRevenueMetrics, defaults to pivotValues, dateRange, and revenueAttributionMetrics; do not pass time_granularity (not supported). ")
+	b.WriteString("Revenue metric names (revenueWonInUsd, returnOnAdSpend, etc.) are nested inside revenueAttributionMetrics, not top-level field projections. ")
 	b.WriteString("Response may include averageFrequency (derived: impressions / approximateMemberReach, Campaign Manager Average frequency).\n\n")
 
 	for _, cat := range linkedInAnalyticsFieldCatalog {
@@ -194,9 +223,11 @@ func buildAnalyticsFieldsDescription() string {
 		b.WriteString(".\n")
 	}
 
-	b.WriteString("\nConstraints: reach metrics need date range <= 92 days and non-MEMBER_* pivots; ")
-	b.WriteString("use time_granularity ALL for weekly totals (do not sum daily reach). ")
-	b.WriteString("For CRM revenue metrics use finder_type attributedRevenueMetrics. ")
+	b.WriteString("\nConstraints: reach metrics and averageFrequency need date range <= 92 days and non-MEMBER_* pivots; ")
+	b.WriteString("MEMBER_* demographic pivots return top 100 values per creative per day and suppress values with fewer than 3 events. ")
+	b.WriteString("MEMBER_INDUSTRY rows include pivotLabels (human-readable names) alongside pivotValues URNs. ")
+	b.WriteString("Use time_granularity ALL for weekly totals (do not sum daily reach). ")
+	b.WriteString("For CRM revenue metrics use finder_type attributedRevenueMetrics (requires CRM connected to LinkedIn; date range 30–366 days; no time_granularity; pivots ACCOUNT, CAMPAIGN_GROUP, or CAMPAIGN only; openOpportunities and opportunityAmountInUsd only when date_range_end is today UTC). ")
 	b.WriteString("Viral variants exist (viralImpressions, viralVideoViews, etc.) — prefix viral to the paid metric name.")
 
 	return b.String()
@@ -207,5 +238,6 @@ func linkedInGetAdAnalyticsToolDescription() string {
 		"Use fields to request any supported metric (see input schema catalog). " +
 		"Combine with linkedin_get_campaigns to map pivotValues to campaign names; use linkedin_get_campaign_groups for funnel-stage IDs. " +
 		"For multi-pivot breakdowns (e.g. campaign by placement), set finder_type statistics with up to 3 pivots. " +
+		"For CRM-attributed revenue (HubSpot, Salesforce, etc. connected to LinkedIn), use finder_type attributedRevenueMetrics. " +
 		"For WoW reports, call twice (current week + prior week) with time_granularity ALL."
 }

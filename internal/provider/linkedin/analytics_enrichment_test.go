@@ -55,7 +55,7 @@ func TestEnrichAnalyticsElement_usesLegacyReachField(t *testing.T) {
 	t.Parallel()
 
 	row := map[string]any{
-		"impressions":                   int64(1000),
+		"impressions":                  int64(1000),
 		"approximateUniqueImpressions": int64(500),
 	}
 	enrichAnalyticsElement(row)
@@ -76,7 +76,7 @@ func TestEnrichAnalyticsResponse_enrichesElements(t *testing.T) {
 			},
 		},
 	}
-	enrichAnalyticsResponse(payload)
+	enrichAnalyticsResponse(payload, nil)
 
 	row := payload["elements"].([]any)[0].(map[string]any)
 	if row[fieldAverageFrequency] != 1.32 {
@@ -88,8 +88,27 @@ func TestEnrichAnalyticsResponse_preservesNonMapPayload(t *testing.T) {
 	t.Parallel()
 
 	payload := "unexpected"
-	if got := enrichAnalyticsResponse(payload); got != payload {
+	if got := enrichAnalyticsResponse(payload, nil); got != payload {
 		t.Fatalf("enrichAnalyticsResponse() = %#v, want unchanged payload", got)
+	}
+}
+
+func TestEnrichAnalyticsResponse_addsIndustryPivotLabels(t *testing.T) {
+	t.Parallel()
+
+	payload := map[string]any{
+		"elements": []any{
+			map[string]any{
+				"pivotValues": []any{"urn:li:industry:6"},
+			},
+		},
+	}
+	enrichAnalyticsResponse(payload, []string{"MEMBER_INDUSTRY"})
+
+	row := payload["elements"].([]any)[0].(map[string]any)
+	labels := row["pivotLabels"].([]any)
+	if labels[0] != "Technology, Information and Internet" {
+		t.Fatalf("pivotLabels[0] = %v", labels[0])
 	}
 }
 
