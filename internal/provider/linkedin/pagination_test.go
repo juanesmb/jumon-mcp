@@ -8,15 +8,17 @@ import (
 type stubLinkedInUpstream struct {
 	pages []any
 	calls int
+	paths []string
 }
 
 func (s *stubLinkedInUpstream) requestJSON(
 	_ context.Context,
-	_, _, _, _ string,
+	_, _, _, path string,
 	_ map[string]string,
 	_ any,
 	_ map[string]string,
 ) (any, error) {
+	s.paths = append(s.paths, path)
 	idx := s.calls
 	s.calls++
 	if idx >= len(s.pages) {
@@ -41,7 +43,7 @@ func TestFetchSearchPages_autoPaginateMergesElements(t *testing.T) {
 		},
 	}
 
-	result, err := fetchSearchPages(context.Background(), stub, "user", "tool", "path", map[string]string{"q": "search"}, true)
+	result, err := fetchSearchPages(context.Background(), stub, "user", "tool", "path", map[string]string{"q": "search"}, true, nil)
 	if err != nil {
 		t.Fatalf("fetchSearchPages() error = %v", err)
 	}
@@ -78,7 +80,7 @@ func TestFetchSearchPages_singlePageWhenAutoPaginateDisabled(t *testing.T) {
 		},
 	}
 
-	result, err := fetchSearchPages(context.Background(), stub, "user", "tool", "path", map[string]string{"q": "search"}, false)
+	result, err := fetchSearchPages(context.Background(), stub, "user", "tool", "path", map[string]string{"q": "search"}, false, nil)
 	if err != nil {
 		t.Fatalf("fetchSearchPages() error = %v", err)
 	}

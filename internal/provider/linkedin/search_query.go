@@ -72,6 +72,13 @@ func parseOptionalTestFilter(params map[string]any) *bool {
 	return nil
 }
 
+func parseOptionalBoolParam(value any, defaultValue bool) bool {
+	if v, ok := value.(bool); ok {
+		return v
+	}
+	return defaultValue
+}
+
 func filterCampaignsByGroup(raw any, groupIDs []string) any {
 	if len(groupIDs) == 0 {
 		return raw

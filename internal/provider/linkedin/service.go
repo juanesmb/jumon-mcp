@@ -73,11 +73,13 @@ type getAnalyticsInput struct {
 }
 
 type searchCreativesInput struct {
-	accountID   string
-	campaignIDs []string
-	sortOrder   string
-	pageSize    *int
-	pageToken   string
+	accountID          string
+	campaignIDs        []string
+	sortOrder          string
+	pageSize           *int
+	pageToken          string
+	autoPaginate       bool
+	includePreviewURLs bool
 }
 
 func (s *service) listAdAccounts(ctx context.Context, userID, mcpTool string, in listAdAccountsInput) (any, error) {
@@ -112,7 +114,7 @@ func (s *service) getCampaigns(ctx context.Context, userID, mcpTool string, in g
 	})
 	autoPaginate := resolveAutoPaginate(in.autoPaginate, in.pageToken, len(in.campaignGroups) > 0)
 
-	raw, err := fetchSearchPages(ctx, s.proxy, userID, mcpTool, apiPath, query, autoPaginate)
+	raw, err := fetchSearchPages(ctx, s.proxy, userID, mcpTool, apiPath, query, autoPaginate, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +132,7 @@ func (s *service) getCampaignGroups(ctx context.Context, userID, mcpTool string,
 		pageToken:    in.pageToken,
 	})
 	autoPaginate := resolveAutoPaginate(in.autoPaginate, in.pageToken, false)
-	return fetchSearchPages(ctx, s.proxy, userID, mcpTool, apiPath, query, autoPaginate)
+	return fetchSearchPages(ctx, s.proxy, userID, mcpTool, apiPath, query, autoPaginate, nil)
 }
 
 func (s *service) getAnalytics(ctx context.Context, userID, mcpTool string, in getAnalyticsInput) (any, error) {
@@ -171,7 +173,15 @@ func (s *service) searchCreatives(ctx context.Context, userID, mcpTool string, i
 
 	headers := map[string]string{"X-RestLi-Method": "FINDER"}
 	path := fmt.Sprintf("adAccounts/%s/creatives", url.PathEscape(accountID))
-	return s.proxy.requestJSON(ctx, userID, mcpTool, "GET", path, query, nil, headers)
+	autoPaginate := resolveAutoPaginate(in.autoPaginate, in.pageToken, false)
+
+	raw, err := fetchSearchPages(ctx, s.proxy, userID, mcpTool, path, query, autoPaginate, headers)
+	if err != nil {
+		return nil, err
+	}
+	return enrichCreativesResponse(ctx, s.proxy, userID, mcpTool, accountID, raw, enrichCreativesOptions{
+		includePreviewURLs: in.includePreviewURLs,
+	}), nil
 }
 
 func parseListAdAccountsInput(params map[string]any) (listAdAccountsInput, error) {
@@ -280,11 +290,15 @@ func parseSearchCreativesInput(params map[string]any) (searchCreativesInput, err
 		return searchCreativesInput{}, fmt.Errorf("campaign_ids or campaign_urns is required")
 	}
 
+	paging := parseSearchPagination(params)
+
 	in := searchCreativesInput{
-		accountID:   accountID,
-		campaignIDs: campaignIDs,
-		sortOrder:   toString(params["sort_order"]),
-		pageToken:   toString(params["page_token"]),
+		accountID:          accountID,
+		campaignIDs:        campaignIDs,
+		sortOrder:          toString(params["sort_order"]),
+		pageToken:          paging.pageToken,
+		autoPaginate:       paging.autoPaginate,
+		includePreviewURLs: parseOptionalBoolParam(params["include_preview_urls"], true),
 	}
 	if ps, ok := toInt(params["page_size"]); ok && ps > 0 {
 		in.pageSize = &ps

@@ -92,7 +92,7 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error 
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Lists LinkedIn creatives for selected campaign URNs.",
-			Description:        "Fetches creatives via LinkedIn criteria finder for one account and one or more campaign IDs/URNs.",
+			Description:        "Fetches creatives for one account and campaign IDs/URNs. Each element may include feedUrl (post permalink when content.reference is share/ugcPost) and previewUrl (Campaign Manager feed preview via Ad Preview API; expires ~3 hours). Use previewUrl for media-plan links, not creative-ID URLs. Set include_preview_urls=false to skip preview API calls.",
 			InputSchema:        searchCreativesSchema(),
 			RequiresConnection: true,
 			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
@@ -310,12 +310,24 @@ func searchCreativesSchema() map[string]any {
 		"type":     "object",
 		"required": []string{"account_id"},
 		"properties": map[string]any{
-			"account_id":    map[string]any{"type": "string"},
-			"campaign_ids":  map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+			"account_id": map[string]any{"type": "string"},
+			"campaign_ids": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Numeric campaign IDs or full campaign URNs.",
+			},
 			"campaign_urns": map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
 			"sort_order":    map[string]any{"type": "string", "enum": []string{"ASCENDING", "DESCENDING"}},
 			"page_size":     map[string]any{"type": "number"},
 			"page_token":    map[string]any{"type": "string"},
+			"auto_paginate": map[string]any{
+				"type":        "boolean",
+				"description": "When true (default), fetches all pages of creatives for the campaign filter. Disabled when page_token is set.",
+			},
+			"include_preview_urls": map[string]any{
+				"type":        "boolean",
+				"description": "When true (default), fetches previewUrl per creative from LinkedIn Ad Preview API (one extra API call per creative; preview links expire ~3 hours). Set false to return only feedUrl when available.",
+			},
 		},
 	}
 }

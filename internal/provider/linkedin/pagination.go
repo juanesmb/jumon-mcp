@@ -8,16 +8,17 @@ func fetchSearchPages(
 	userID, mcpTool, apiPath string,
 	query map[string]string,
 	autoPaginate bool,
+	extraHeaders map[string]string,
 ) (any, error) {
 	if !autoPaginate {
-		return proxy.requestJSON(ctx, userID, mcpTool, "GET", apiPath, query, nil, nil)
+		return proxy.requestJSON(ctx, userID, mcpTool, "GET", apiPath, query, nil, extraHeaders)
 	}
 
 	allElements := make([]any, 0)
 	var lastMeta map[string]any
 
 	for range maxAutoPaginatePages {
-		raw, err := proxy.requestJSON(ctx, userID, mcpTool, "GET", apiPath, query, nil, nil)
+		raw, err := proxy.requestJSON(ctx, userID, mcpTool, "GET", apiPath, query, nil, extraHeaders)
 		if err != nil {
 			return nil, err
 		}
