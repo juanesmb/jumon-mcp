@@ -369,6 +369,18 @@ func getAnalyticsSchema() map[string]any {
 				"enum":        []string{"ASCENDING", "DESCENDING"},
 				"description": "Sort direction (default DESCENDING).",
 			},
+			"auto_paginate": map[string]any{
+				"type":        "boolean",
+				"description": "When true (default), follows paging.links[rel=next] to fetch all analytics rows (uses start/count offsets). Set false for a single page.",
+			},
+			"page_size": map[string]any{
+				"type":        "number",
+				"description": "Results per page (default 10, matching LinkedIn adAnalytics). Only relevant when auto_paginate is false.",
+			},
+			"page_token": map[string]any{
+				"type":        "string",
+				"description": "Pagination offset for the next page: numeric start value (e.g. 10), start=10, or the full paging.links[rel=next] href. Disables auto_paginate.",
+			},
 		},
 	}
 }

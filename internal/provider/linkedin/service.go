@@ -70,6 +70,9 @@ type getAnalyticsInput struct {
 	fields           []string
 	sortByField      string
 	sortByOrder      string
+	autoPaginate     bool
+	pageSize         int
+	pageToken        string
 }
 
 type searchCreativesInput struct {
@@ -165,7 +168,10 @@ func (s *service) getAnalytics(ctx context.Context, userID, mcpTool string, in g
 		return nil, err
 	}
 
-	raw, err := s.proxy.requestJSON(ctx, userID, mcpTool, "GET", "adAnalytics", query, nil, nil)
+	autoPaginate := resolveAutoPaginate(in.autoPaginate, in.pageToken, false)
+	applyAnalyticsPagination(query, in.pageToken, in.pageSize)
+
+	raw, err := fetchAnalyticsPages(ctx, s.proxy, userID, mcpTool, query, autoPaginate)
 	if err != nil {
 		return nil, err
 	}
@@ -352,6 +358,8 @@ func parseGetAnalyticsInput(params map[string]any) (getAnalyticsInput, error) {
 		endDate = v
 	}
 
+	paging := parseAnalyticsPagination(params)
+
 	return getAnalyticsInput{
 		accountID:        accountID,
 		startDate:        startDate,
@@ -365,6 +373,9 @@ func parseGetAnalyticsInput(params map[string]any) (getAnalyticsInput, error) {
 		fields:           toStringSlice(params["fields"]),
 		sortByField:      toString(params["sort_by_field"]),
 		sortByOrder:      toString(params["sort_by_order"]),
+		autoPaginate:     paging.autoPaginate,
+		pageSize:         paging.pageSize,
+		pageToken:        paging.pageToken,
 	}, nil
 }
 

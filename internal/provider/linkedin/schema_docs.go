@@ -252,5 +252,6 @@ func linkedInGetAdAnalyticsToolDescription() string {
 		"For multi-pivot breakdowns (e.g. campaign by placement), set finder_type statistics with up to 3 pivots. " +
 		"For CRM-attributed revenue (HubSpot, Salesforce, etc. connected to LinkedIn), use finder_type attributedRevenueMetrics. " +
 		"For WoW reports, call twice (current week + prior week) with time_granularity ALL. " +
-		"For conversion performance, first call linkedin_list_conversions to get rule names, then request externalWebsiteConversions / externalWebsitePostClickConversions / externalWebsitePostViewConversions / conversionValueInLocalCurrency pivoted by CAMPAIGN or CREATIVE."
+		"For conversion performance, first call linkedin_list_conversions to get rule names, then request externalWebsiteConversions / externalWebsitePostClickConversions / externalWebsitePostViewConversions / conversionValueInLocalCurrency pivoted by CAMPAIGN or CREATIVE. " +
+		"Pagination uses start/count offsets (default auto_paginate true). Pass page_token from paging.links[rel=next] to fetch a specific page manually."
 }
