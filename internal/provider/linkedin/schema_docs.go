@@ -162,6 +162,18 @@ var (
 			"costInLocalCurrency",
 			"externalWebsiteConversions",
 		},
+		// Conversion performance — call linkedin_list_conversions first to get rule IDs,
+		// then pivot by CAMPAIGN or CREATIVE to break down by funnel stage.
+		{
+			"pivotValues",
+			"impressions",
+			"clicks",
+			"externalWebsiteConversions",
+			"externalWebsitePostClickConversions",
+			"externalWebsitePostViewConversions",
+			"conversionValueInLocalCurrency",
+			"costInLocalCurrency",
+		},
 		// Lead gen / incentive
 		{
 			"pivotValues",
@@ -239,5 +251,6 @@ func linkedInGetAdAnalyticsToolDescription() string {
 		"Combine with linkedin_get_campaigns to map pivotValues to campaign names; use linkedin_get_campaign_groups for funnel-stage IDs. " +
 		"For multi-pivot breakdowns (e.g. campaign by placement), set finder_type statistics with up to 3 pivots. " +
 		"For CRM-attributed revenue (HubSpot, Salesforce, etc. connected to LinkedIn), use finder_type attributedRevenueMetrics. " +
-		"For WoW reports, call twice (current week + prior week) with time_granularity ALL."
+		"For WoW reports, call twice (current week + prior week) with time_granularity ALL. " +
+		"For conversion performance, first call linkedin_list_conversions to get rule names, then request externalWebsiteConversions / externalWebsitePostClickConversions / externalWebsitePostViewConversions / conversionValueInLocalCurrency pivoted by CAMPAIGN or CREATIVE."
 }

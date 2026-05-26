@@ -6,19 +6,23 @@ import (
 )
 
 type stubLinkedInUpstream struct {
-	pages []any
-	calls int
-	paths []string
+	pages       []any
+	calls       int
+	paths       []string
+	queries     []map[string]string
+	headersList []map[string]string
 }
 
 func (s *stubLinkedInUpstream) requestJSON(
 	_ context.Context,
 	_, _, _, path string,
-	_ map[string]string,
+	query map[string]string,
 	_ any,
-	_ map[string]string,
+	headers map[string]string,
 ) (any, error) {
 	s.paths = append(s.paths, path)
+	s.queries = append(s.queries, query)
+	s.headersList = append(s.headersList, headers)
 	idx := s.calls
 	s.calls++
 	if idx >= len(s.pages) {

@@ -16,6 +16,10 @@ const (
 	toolLinkedInGetCampaigns      = "linkedin_get_campaigns"
 	toolLinkedInGetAdAnalytics    = "linkedin_get_ad_analytics"
 	toolLinkedInSearchCreatives   = "linkedin_search_creatives"
+	toolLinkedInListLeadForms     = "linkedin_list_lead_forms"
+	toolLinkedInGetCampaign       = "linkedin_get_campaign"
+	toolLinkedInGetCreative       = "linkedin_get_creative"
+	toolLinkedInListConversions   = "linkedin_list_conversions"
 )
 
 func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error {
@@ -92,7 +96,7 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error 
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Lists LinkedIn creatives for selected campaign URNs.",
-			Description:        "Fetches creatives for one account and campaign IDs/URNs. Each element may include feedUrl (post permalink when content.reference is share/ugcPost) and previewUrl (Campaign Manager feed preview via Ad Preview API; expires ~3 hours). Use previewUrl for media-plan links, not creative-ID URLs. Set include_preview_urls=false to skip preview API calls.",
+			Description:        "Fetches creatives for one account and campaign IDs/URNs. Each element may include feedUrl (post permalink), previewUrl (Ad Preview API, expires ~3 hours), lead gen form fields (leadFormUrn, leadFormCtaLabel, leadFormName) when the creative has a leadgenCallToAction, and thumbnailUrl when include_asset_urls=true. Set include_preview_urls=false or include_lead_form_details=false to skip those enrichment calls.",
 			InputSchema:        searchCreativesSchema(),
 			RequiresConnection: true,
 			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
@@ -101,6 +105,70 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error 
 					return nil, err
 				}
 				return svc.searchCreatives(ctx, userID, toolLinkedInSearchCreatives, in)
+			},
+		},
+		{
+			Name:               toolLinkedInListLeadForms,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Lists LinkedIn lead gen forms for an ad account.",
+			Description:        "Fetches all lead gen forms owned by the given ad account using GET /rest/leadForms?q=owner. Returns form names, IDs, and status. Use to discover form URNs for cross-referencing leadFormUrn fields returned by linkedin_search_creatives.",
+			InputSchema:        listLeadFormsSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseListLeadFormsInput(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.listLeadForms(ctx, userID, toolLinkedInListLeadForms, in)
+			},
+		},
+		{
+			Name:               toolLinkedInGetCampaign,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Fetches a single LinkedIn campaign by ID.",
+			Description:        "Returns the full campaign object for one campaign. Accepts either a numeric campaign ID or a full urn:li:sponsoredCampaign:... URN.",
+			InputSchema:        getCampaignSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseGetCampaignInput(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.getCampaign(ctx, userID, toolLinkedInGetCampaign, in)
+			},
+		},
+		{
+			Name:               toolLinkedInGetCreative,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Fetches a single LinkedIn creative by ID with full enrichment.",
+			Description:        "Returns the full creative object for one creative, enriched with feedUrl, previewUrl, lead gen form fields, and optionally thumbnailUrl (same flags as linkedin_search_creatives). Accepts either a numeric creative ID or a full urn:li:sponsoredCreative:... URN.",
+			InputSchema:        getCreativeSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseGetCreativeInput(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.getCreative(ctx, userID, toolLinkedInGetCreative, in)
+			},
+		},
+		{
+			Name:               toolLinkedInListConversions,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Lists LinkedIn conversion rules for an ad account.",
+			Description:        "Fetches conversion tracking rules for the given account using GET /rest/conversions?q=account. Use the returned conversion IDs/URNs to filter analytics by specific conversion events in linkedin_get_ad_analytics. Set enabled_only=true to exclude paused rules.",
+			InputSchema:        listConversionsSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseListConversionsInput(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.listConversions(ctx, userID, toolLinkedInListConversions, in)
 			},
 		},
 	}
@@ -327,6 +395,98 @@ func searchCreativesSchema() map[string]any {
 			"include_preview_urls": map[string]any{
 				"type":        "boolean",
 				"description": "When true (default), fetches previewUrl per creative from LinkedIn Ad Preview API (one extra API call per creative; preview links expire ~3 hours). Set false to return only feedUrl when available.",
+			},
+			"include_lead_form_details": map[string]any{
+				"type":        "boolean",
+				"description": "When true (default), resolves lead gen form name and CTA label for creatives with a leadgenCallToAction (one batch API call for all unique forms). Set false to skip. Adds leadFormUrn, leadFormCtaLabel, and leadFormName fields when available.",
+			},
+			"include_asset_urls": map[string]any{
+				"type":        "boolean",
+				"description": "When true, attempts to fetch thumbnailUrl per creative by resolving the post media chain (posts → images/videos API). Default false. NOTE: As of the current r_ads OAuth scope, the posts endpoint returns an access error and thumbnailUrl will not be populated. This flag is reserved for when r_organization_social or an equivalent scope is granted.",
+			},
+		},
+	}
+}
+
+func listLeadFormsSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"account_id"},
+		"properties": map[string]any{
+			"account_id": map[string]any{
+				"type":        "string",
+				"description": "Numeric LinkedIn ad account ID.",
+			},
+			"page_size": map[string]any{
+				"type":        "number",
+				"description": "Maximum number of forms to return per page.",
+			},
+			"page_token": map[string]any{
+				"type":        "string",
+				"description": "Pagination cursor (numeric start offset) from a previous response.",
+			},
+		},
+	}
+}
+
+func getCampaignSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"account_id", "campaign_id"},
+		"properties": map[string]any{
+			"account_id": map[string]any{
+				"type":        "string",
+				"description": "Numeric LinkedIn ad account ID.",
+			},
+			"campaign_id": map[string]any{
+				"type":        "string",
+				"description": "Numeric campaign ID or full urn:li:sponsoredCampaign:... URN.",
+			},
+		},
+	}
+}
+
+func getCreativeSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"account_id", "creative_id"},
+		"properties": map[string]any{
+			"account_id": map[string]any{
+				"type":        "string",
+				"description": "Numeric LinkedIn ad account ID.",
+			},
+			"creative_id": map[string]any{
+				"type":        "string",
+				"description": "Numeric creative ID or full urn:li:sponsoredCreative:... URN.",
+			},
+			"include_preview_urls": map[string]any{
+				"type":        "boolean",
+				"description": "When true (default), fetches previewUrl from Ad Preview API.",
+			},
+			"include_lead_form_details": map[string]any{
+				"type":        "boolean",
+				"description": "When true (default), resolves lead gen form name and CTA. Adds leadFormUrn, leadFormCtaLabel, leadFormName when available.",
+			},
+			"include_asset_urls": map[string]any{
+				"type":        "boolean",
+				"description": "When true, attempts to fetch thumbnailUrl via posts/images API. Default false. Currently degrades silently under r_ads scope (posts endpoint not accessible).",
+			},
+		},
+	}
+}
+
+func listConversionsSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"account_id"},
+		"properties": map[string]any{
+			"account_id": map[string]any{
+				"type":        "string",
+				"description": "Numeric LinkedIn ad account ID.",
+			},
+			"enabled_only": map[string]any{
+				"type":        "boolean",
+				"description": "When true, returns only enabled (active) conversion rules. Default false returns all rules.",
 			},
 		},
 	}

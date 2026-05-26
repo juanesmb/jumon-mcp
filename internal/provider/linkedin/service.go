@@ -73,13 +73,37 @@ type getAnalyticsInput struct {
 }
 
 type searchCreativesInput struct {
-	accountID          string
-	campaignIDs        []string
-	sortOrder          string
-	pageSize           *int
-	pageToken          string
-	autoPaginate       bool
-	includePreviewURLs bool
+	accountID              string
+	campaignIDs            []string
+	sortOrder              string
+	pageSize               *int
+	pageToken              string
+	autoPaginate           bool
+	includePreviewURLs     bool
+	includeLeadFormDetails bool
+	includeAssetURLs       bool
+}
+
+type getCampaignInput struct {
+	accountID  string
+	campaignID string
+}
+
+type getCreativeInput struct {
+	accountID   string
+	creativeURN string
+	enrichOpts  enrichCreativesOptions
+}
+
+type listLeadFormsInput struct {
+	accountID string
+	pageSize  *int
+	pageToken string
+}
+
+type listConversionsInput struct {
+	accountID   string
+	enabledOnly bool
 }
 
 func (s *service) listAdAccounts(ctx context.Context, userID, mcpTool string, in listAdAccountsInput) (any, error) {
@@ -180,8 +204,76 @@ func (s *service) searchCreatives(ctx context.Context, userID, mcpTool string, i
 		return nil, err
 	}
 	return enrichCreativesResponse(ctx, s.proxy, userID, mcpTool, accountID, raw, enrichCreativesOptions{
-		includePreviewURLs: in.includePreviewURLs,
+		includePreviewURLs:     in.includePreviewURLs,
+		includeLeadFormDetails: in.includeLeadFormDetails,
+		includeAssetURLs:       in.includeAssetURLs,
 	}), nil
+}
+
+func (s *service) getCampaign(ctx context.Context, userID, mcpTool string, in getCampaignInput) (any, error) {
+	apiPath := fmt.Sprintf("adAccounts/%s/adCampaigns/%s",
+		url.PathEscape(in.accountID),
+		url.PathEscape(campaignIDToNumeric(in.campaignID)),
+	)
+	return s.proxy.requestJSON(ctx, userID, mcpTool, "GET", apiPath, nil, nil, nil)
+}
+
+func (s *service) getCreative(ctx context.Context, userID, mcpTool string, in getCreativeInput) (any, error) {
+	creativeURN := toSponsoredCreativeURN(in.creativeURN)
+	apiPath := fmt.Sprintf("adAccounts/%s/creatives", url.PathEscape(strings.TrimSpace(in.accountID)))
+	query := map[string]string{
+		"ids": fmt.Sprintf("List(%s)", creativeURN),
+	}
+	headers := map[string]string{"X-RestLi-Method": "BATCH_GET"}
+
+	raw, err := s.proxy.requestJSON(ctx, userID, mcpTool, "GET", apiPath, query, nil, headers)
+	if err != nil {
+		return nil, err
+	}
+	row, ok := parseCreativeBatchGetResponse(raw, creativeURN)
+	if !ok {
+		return nil, fmt.Errorf("creative %s not found", creativeURN)
+	}
+	// Wrap the single element in an elements envelope so enrichCreativesResponse can process it.
+	wrapped := map[string]any{"elements": []any{row}}
+	enriched := enrichCreativesResponse(ctx, s.proxy, userID, mcpTool, in.accountID, wrapped, in.enrichOpts)
+	if root, ok := enriched.(map[string]any); ok {
+		if elems, ok := root["elements"].([]any); ok && len(elems) > 0 {
+			return elems[0], nil
+		}
+	}
+	return row, nil
+}
+
+func (s *service) listLeadForms(ctx context.Context, userID, mcpTool string, in listLeadFormsInput) (any, error) {
+	accountURN := sponsoredAccountURN(in.accountID)
+	query := map[string]string{
+		"q":     "owner",
+		"owner": fmt.Sprintf("(sponsoredAccount:%s)", accountURN),
+	}
+	if in.pageSize != nil && *in.pageSize > 0 {
+		query["count"] = strconv.Itoa(*in.pageSize)
+	}
+	if token := strings.TrimSpace(in.pageToken); token != "" {
+		query["start"] = token
+	}
+	return s.proxy.requestJSON(ctx, userID, mcpTool, "GET", "leadForms", query, nil, nil)
+}
+
+func (s *service) listConversions(ctx context.Context, userID, mcpTool string, in listConversionsInput) (any, error) {
+	accountURN := sponsoredAccountURN(in.accountID)
+	query := map[string]string{
+		"q":       "account",
+		"account": accountURN,
+	}
+	raw, err := s.proxy.requestJSON(ctx, userID, mcpTool, "GET", "conversions", query, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	if !in.enabledOnly {
+		return raw, nil
+	}
+	return filterConversionsByEnabled(raw), nil
 }
 
 func parseListAdAccountsInput(params map[string]any) (listAdAccountsInput, error) {
@@ -293,17 +385,75 @@ func parseSearchCreativesInput(params map[string]any) (searchCreativesInput, err
 	paging := parseSearchPagination(params)
 
 	in := searchCreativesInput{
-		accountID:          accountID,
-		campaignIDs:        campaignIDs,
-		sortOrder:          toString(params["sort_order"]),
-		pageToken:          paging.pageToken,
-		autoPaginate:       paging.autoPaginate,
-		includePreviewURLs: parseOptionalBoolParam(params["include_preview_urls"], true),
+		accountID:              accountID,
+		campaignIDs:            campaignIDs,
+		sortOrder:              toString(params["sort_order"]),
+		pageToken:              paging.pageToken,
+		autoPaginate:           paging.autoPaginate,
+		includePreviewURLs:     parseOptionalBoolParam(params["include_preview_urls"], true),
+		includeLeadFormDetails: parseOptionalBoolParam(params["include_lead_form_details"], true),
+		includeAssetURLs:       parseOptionalBoolParam(params["include_asset_urls"], false),
 	}
 	if ps, ok := toInt(params["page_size"]); ok && ps > 0 {
 		in.pageSize = &ps
 	}
 	return in, nil
+}
+
+func parseGetCampaignInput(params map[string]any) (getCampaignInput, error) {
+	accountID := strings.TrimSpace(toString(params["account_id"]))
+	campaignID := strings.TrimSpace(toString(params["campaign_id"]))
+	if accountID == "" {
+		return getCampaignInput{}, fmt.Errorf("account_id is required")
+	}
+	if campaignID == "" {
+		return getCampaignInput{}, fmt.Errorf("campaign_id is required")
+	}
+	return getCampaignInput{accountID: accountID, campaignID: campaignID}, nil
+}
+
+func parseGetCreativeInput(params map[string]any) (getCreativeInput, error) {
+	accountID := strings.TrimSpace(toString(params["account_id"]))
+	creativeID := strings.TrimSpace(toString(params["creative_id"]))
+	if accountID == "" {
+		return getCreativeInput{}, fmt.Errorf("account_id is required")
+	}
+	if creativeID == "" {
+		return getCreativeInput{}, fmt.Errorf("creative_id is required")
+	}
+	return getCreativeInput{
+		accountID:   accountID,
+		creativeURN: creativeID,
+		enrichOpts: enrichCreativesOptions{
+			includePreviewURLs:     parseOptionalBoolParam(params["include_preview_urls"], true),
+			includeLeadFormDetails: parseOptionalBoolParam(params["include_lead_form_details"], true),
+			includeAssetURLs:       parseOptionalBoolParam(params["include_asset_urls"], false),
+		},
+	}, nil
+}
+
+func parseListLeadFormsInput(params map[string]any) (listLeadFormsInput, error) {
+	accountID := strings.TrimSpace(toString(params["account_id"]))
+	if accountID == "" {
+		return listLeadFormsInput{}, fmt.Errorf("account_id is required")
+	}
+	in := listLeadFormsInput{accountID: accountID}
+	if ps, ok := toInt(params["page_size"]); ok && ps > 0 {
+		in.pageSize = &ps
+	}
+	in.pageToken = strings.TrimSpace(toString(params["page_token"]))
+	return in, nil
+}
+
+func parseListConversionsInput(params map[string]any) (listConversionsInput, error) {
+	accountID := strings.TrimSpace(toString(params["account_id"]))
+	if accountID == "" {
+		return listConversionsInput{}, fmt.Errorf("account_id is required")
+	}
+	return listConversionsInput{
+		accountID:   accountID,
+		enabledOnly: parseOptionalBoolParam(params["enabled_only"], false),
+	}, nil
 }
 
 func appendListFinder(query map[string]string, field string, values []string) {
@@ -455,4 +605,48 @@ func toInt(value any) (int, bool) {
 	default:
 		return 0, false
 	}
+}
+
+// campaignIDToNumeric returns the numeric portion of a campaign ID for use in REST paths.
+// Accepts either "12345" or "urn:li:sponsoredCampaign:12345".
+func campaignIDToNumeric(id string) string {
+	const prefix = "urn:li:sponsoredCampaign:"
+	if after, ok := strings.CutPrefix(strings.TrimSpace(id), prefix); ok {
+		return after
+	}
+	return strings.TrimSpace(id)
+}
+
+// toSponsoredCreativeURN returns a full sponsored creative URN, accepting either a numeric
+// ID ("12345") or an existing URN ("urn:li:sponsoredCreative:12345").
+func toSponsoredCreativeURN(id string) string {
+	const prefix = "urn:li:sponsoredCreative:"
+	trimmed := strings.TrimSpace(id)
+	if strings.HasPrefix(trimmed, prefix) {
+		return trimmed
+	}
+	return prefix + trimmed
+}
+
+func filterConversionsByEnabled(raw any) any {
+	root, ok := raw.(map[string]any)
+	if !ok {
+		return raw
+	}
+	elements, ok := root["elements"].([]any)
+	if !ok {
+		return raw
+	}
+	filtered := make([]any, 0, len(elements))
+	for _, item := range elements {
+		row, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		if enabled, _ := row["enabled"].(bool); enabled {
+			filtered = append(filtered, row)
+		}
+	}
+	root["elements"] = filtered
+	return root
 }

@@ -3,7 +3,9 @@ package linkedin
 import "context"
 
 type enrichCreativesOptions struct {
-	includePreviewURLs bool
+	includePreviewURLs     bool
+	includeLeadFormDetails bool
+	includeAssetURLs       bool
 }
 
 func enrichCreativesResponse(
@@ -31,6 +33,15 @@ func enrichCreativesResponse(
 		enrichCreativeElement(ctx, proxy, userID, mcpTool, accountID, row, opts)
 		elements[i] = row
 	}
+
+	if opts.includeLeadFormDetails {
+		enrichCreativesWithLeadForms(ctx, proxy, userID, mcpTool, elements)
+	}
+
+	if opts.includeAssetURLs {
+		enrichCreativesWithAssets(ctx, proxy, userID, mcpTool, elements)
+	}
+
 	root["elements"] = elements
 	return root
 }
