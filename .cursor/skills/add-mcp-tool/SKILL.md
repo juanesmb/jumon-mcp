@@ -33,7 +33,9 @@ Copy patterns from `linkedin_get_campaign_groups` in `internal/provider/linkedin
 
 5. **LinkedIn analytics** — If analytics-related, check [docs/linkedin-analytics-roadmap.md](../../docs/linkedin-analytics-roadmap.md) and [reference.md](reference.md).
 
-6. **UI sync** — Remind to add blurb in mcp-ads-manager `apps/web/lib/mcp-provider-tools.ts` (use `@sync-mcp-tool-catalog` in that repo).
+6. **Google Ads** — See [reference-google.md](reference-google.md) and [docs/google-ads-tools.md](../../docs/google-ads-tools.md).
+
+7. **UI sync** — Remind to add blurb in mcp-ads-manager `apps/web/lib/mcp-provider-tools.ts` (use `@sync-mcp-tool-catalog` in that repo).
 
 ## Tool naming
 

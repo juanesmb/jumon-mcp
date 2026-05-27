@@ -12,10 +12,15 @@ const platformName = "google"
 
 const (
 	toolGoogleListAdAccounts             = "google_list_ad_accounts"
+	toolGoogleResolveCustomer            = "google_resolve_customer"
 	toolGoogleListClientAccountsUnderMgr = "google_list_client_accounts_under_manager"
 	toolGoogleSearchCampaigns            = "google_search_campaigns"
 	toolGoogleSearchAdGroups             = "google_search_ad_groups"
 	toolGoogleSearchAds                  = "google_search_ads"
+	toolGoogleSearchKeywords             = "google_search_keywords"
+	toolGoogleSearchSearchTerms          = "google_search_search_terms"
+	toolGoogleListConversionActions      = "google_list_conversion_actions"
+	toolGoogleSearchConversionPerf       = "google_search_conversion_performance"
 )
 
 type Config struct {
@@ -34,8 +39,8 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client, config
 			Name:               toolGoogleListAdAccounts,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
-			Summary:            "Lists Google Ads customer IDs accessible to the connected user.",
-			Description:        "Calls customers:listAccessibleCustomers and returns accessible customer resource names.",
+			Summary:            "Lists accessible Google Ads accounts with names, manager flag, currency, and timezone.",
+			Description:        listAdAccountsDescription(),
 			InputSchema:        map[string]any{"type": "object"},
 			RequiresConnection: true,
 			Execute: func(ctx context.Context, userID string, _ map[string]any) (any, error) {
@@ -43,11 +48,27 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client, config
 			},
 		},
 		{
+			Name:               toolGoogleResolveCustomer,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Find customer_id and login_customer_id by account name when the user does not provide a CID.",
+			Description:        resolveCustomerDescription(),
+			InputSchema:        resolveCustomerSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseResolveCustomerInput(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.resolveCustomer(ctx, userID, toolGoogleResolveCustomer, in)
+			},
+		},
+		{
 			Name:               toolGoogleListClientAccountsUnderMgr,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
-			Summary:            "Lists non-manager client accounts under one manager account.",
-			Description:        "Runs a GAQL customer_client query under an MCC manager account.",
+			Summary:            "Lists client accounts under one manager (MCC); optional client name filter.",
+			Description:        listClientAccountsDescription(),
 			InputSchema:        listClientAccountsSchema(),
 			RequiresConnection: true,
 			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
@@ -63,7 +84,7 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client, config
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Searches Google Ads campaigns and core metrics.",
-			Description:        "Runs a GAQL campaign query with optional status/name/date filters.",
+			Description:        "Runs a GAQL campaign query with optional status/name/date filters. " + googleAdsWorkflowHint(),
 			InputSchema:        searchCampaignsSchema(),
 			RequiresConnection: true,
 			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
@@ -79,7 +100,7 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client, config
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Searches Google Ads ad groups and key metrics.",
-			Description:        "Runs a GAQL ad_group query with optional campaign/status/date filters.",
+			Description:        "Runs a GAQL ad_group query with optional campaign/status/date filters. " + googleAdsWorkflowHint(),
 			InputSchema:        searchAdGroupsSchema(),
 			RequiresConnection: true,
 			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
@@ -95,7 +116,7 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client, config
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Searches Google Ads ad-level entities and metrics.",
-			Description:        "Runs a GAQL ad_group_ad query with optional campaign/adgroup/status/date filters.",
+			Description:        "Runs a GAQL ad_group_ad query with optional campaign/adgroup/status/date filters. " + googleAdsWorkflowHint(),
 			InputSchema:        searchAdsSchema(),
 			RequiresConnection: true,
 			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
@@ -106,6 +127,70 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client, config
 				return svc.searchAds(ctx, userID, toolGoogleSearchAds, in)
 			},
 		},
+		{
+			Name:               toolGoogleSearchKeywords,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Keyword-level performance (keyword_view) with optional campaign/ad group and date filters.",
+			Description:        searchKeywordsDescription(),
+			InputSchema:        searchKeywordsSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseReportFilters(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.searchKeywords(ctx, userID, toolGoogleSearchKeywords, in)
+			},
+		},
+		{
+			Name:               toolGoogleSearchSearchTerms,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Search query / search term report (search_term_view) with optional date range.",
+			Description:        searchSearchTermsDescription(),
+			InputSchema:        searchSearchTermsSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseReportFilters(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.searchSearchTerms(ctx, userID, toolGoogleSearchSearchTerms, in)
+			},
+		},
+		{
+			Name:               toolGoogleListConversionActions,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "List conversion action definitions (names, types, status) for an account.",
+			Description:        listConversionActionsDescription(),
+			InputSchema:        listConversionActionsSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseReportFilters(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.listConversionActions(ctx, userID, toolGoogleListConversionActions, in)
+			},
+		},
+		{
+			Name:               toolGoogleSearchConversionPerf,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Conversion metrics by campaign and conversion action over a date range.",
+			Description:        searchConversionPerformanceDescription(),
+			InputSchema:        searchConversionPerformanceSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseConversionPerformanceFilters(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.searchConversionPerformance(ctx, userID, toolGoogleSearchConversionPerf, in)
+			},
+		},
 	}
 
 	for _, tool := range tools {
@@ -114,64 +199,4 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client, config
 		}
 	}
 	return nil
-}
-
-func listClientAccountsSchema() map[string]any {
-	return map[string]any{
-		"type":     "object",
-		"required": []string{"customer_id"},
-		"properties": map[string]any{
-			"customer_id":       map[string]any{"type": "string"},
-			"login_customer_id": map[string]any{"type": "string"},
-		},
-	}
-}
-
-func searchCampaignsSchema() map[string]any {
-	return map[string]any{
-		"type":     "object",
-		"required": []string{"customer_id"},
-		"properties": map[string]any{
-			"customer_id":            map[string]any{"type": "string"},
-			"login_customer_id":      map[string]any{"type": "string"},
-			"campaign_ids":           map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-			"campaign_name_contains": map[string]any{"type": "string"},
-			"statuses":               map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-			"date_range_start":       map[string]any{"type": "string"},
-			"date_range_end":         map[string]any{"type": "string"},
-		},
-	}
-}
-
-func searchAdGroupsSchema() map[string]any {
-	return map[string]any{
-		"type":     "object",
-		"required": []string{"customer_id"},
-		"properties": map[string]any{
-			"customer_id":       map[string]any{"type": "string"},
-			"login_customer_id": map[string]any{"type": "string"},
-			"ad_group_ids":      map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-			"campaign_ids":      map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-			"statuses":          map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-			"date_range_start":  map[string]any{"type": "string"},
-			"date_range_end":    map[string]any{"type": "string"},
-		},
-	}
-}
-
-func searchAdsSchema() map[string]any {
-	return map[string]any{
-		"type":     "object",
-		"required": []string{"customer_id"},
-		"properties": map[string]any{
-			"customer_id":       map[string]any{"type": "string"},
-			"login_customer_id": map[string]any{"type": "string"},
-			"ad_ids":            map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-			"ad_group_ids":      map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-			"campaign_ids":      map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-			"statuses":          map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-			"date_range_start":  map[string]any{"type": "string"},
-			"date_range_end":    map[string]any{"type": "string"},
-		},
-	}
 }

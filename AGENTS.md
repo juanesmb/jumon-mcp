@@ -44,13 +44,13 @@ See [docs/gateway-contract.md](docs/gateway-contract.md). OAuth + token decrypti
 | Task | Entry files |
 |------|-------------|
 | New LinkedIn tool | `internal/provider/linkedin/tools.go`, `service.go`, `schema_docs.go`, `*_test.go` |
-| New Google tool | `internal/provider/googleads/tools.go`, `service.go` |
+| New Google tool | `internal/provider/googleads/tools.go`, `accounts.go` / `reports.go` / `report_queries.go`, `schemas.go`, `schema_docs.go`, `*_test.go` — see [docs/google-ads-tools.md](docs/google-ads-tools.md) |
 | New Reddit tool | `internal/provider/reddit/tools.go`, `service.go` |
 | Analytics work | `docs/linkedin-analytics-roadmap.md`, `analytics_pagination.go` |
 | Gateway calls | `internal/infrastructure/gateway/client.go`, provider `proxy.go` |
 | Tool registration | `internal/app/wire.go`, `internal/provider/registry/registry.go` |
 
-Reference template for new tools: `linkedin_get_campaign_groups`.
+Reference templates: LinkedIn `linkedin_get_campaign_groups`; Google `google_search_keywords` or `google_resolve_customer`.
 
 ## Skills (invoke with @)
 

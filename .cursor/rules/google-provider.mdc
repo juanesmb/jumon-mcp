@@ -1,0 +1,46 @@
+---
+description: Google Ads provider tool conventions, GAQL, and MCC context
+globs: internal/provider/googleads/**
+alwaysApply: false
+---
+
+# Google Ads provider
+
+## Tool naming
+
+All tools prefixed `google_`. Register in `tools.go`; implement in `accounts.go`, `reports.go`, `report_queries.go`, or `reports_legacy.go`.
+
+## Gateway proxy
+
+Use `proxy.go` / `googleGateway.requestJSON` — never call Google Ads directly. All requests go through mcp-ads-manager with the user's OAuth token and `developer-token` header (gateway adapter).
+
+## MCC / login-customer-id
+
+- `customer_id`: account being queried (client or standalone).
+- `login_customer_id`: manager (MCC) id when querying a client under an MCC.
+- `google_resolve_customer` returns both when match is under a manager.
+
+## GAQL
+
+- Shared builders in `gaql.go`.
+- Date filters: `segments.date` with `YYYY-MM-DD`.
+- Enum filters: uppercase unquoted (`ENABLED`).
+- Report limits: default 500, max 1000.
+
+## Schemas and agent docs
+
+- Input JSON schemas: `schemas.go`.
+- Long descriptions: `schema_docs.go`.
+- Product matrix: [docs/google-ads-tools.md](../../docs/google-ads-tools.md).
+
+## Tests
+
+Add `*_test.go` for GAQL builders, parsers, and account matching. Run:
+
+```bash
+go test ./internal/provider/googleads/...
+```
+
+## UI catalog sync
+
+After adding a tool, update mcp-ads-manager `apps/web/lib/mcp-provider-tools.ts` (`ProviderAgentToolsCollapsible` on `/connections`).

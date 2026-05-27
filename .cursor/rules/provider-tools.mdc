@@ -22,6 +22,7 @@ Each tool is a `registry.ToolDefinition` in the provider's `tools.go`:
 4. Add input parser and schema function.
 5. Add tests in the same provider package.
 6. For LinkedIn: update `schema_docs.go` when agents need metric/pivot guidance.
-7. Sync UI blurb in mcp-ads-manager `apps/web/lib/mcp-provider-tools.ts`.
+7. For Google: update `schema_docs.go` and [docs/google-ads-tools.md](../../docs/google-ads-tools.md).
+8. Sync UI blurb in mcp-ads-manager `apps/web/lib/mcp-provider-tools.ts` (renders in `ProviderAgentToolsCollapsible` on `/connections`).
 
-Reference implementation: `linkedin_get_campaign_groups` in `internal/provider/linkedin/`.
+Reference implementations: LinkedIn `linkedin_get_campaign_groups`; Google `google_search_keywords` in `internal/provider/googleads/`.
