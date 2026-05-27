@@ -8,7 +8,12 @@ alwaysApply: false
 
 ## Tool naming
 
-All tools prefixed `google_`. Register in `tools.go`; implement in `accounts.go`, `reports.go`, `report_queries.go`, or `reports_legacy.go`.
+All tools prefixed `google_`. Register in `tools.go`; implement in:
+
+- `accounts.go` — account discovery
+- `reports.go`, `report_queries.go`, `reports_legacy.go` — curated P1 reports
+- `field_service.go` — `google_get_resource_metadata`
+- `generic_search.go` — `google_search_gaql`
 
 ## Gateway proxy
 
@@ -20,12 +25,20 @@ Use `proxy.go` / `googleGateway.requestJSON` — never call Google Ads directly.
 - `login_customer_id`: manager (MCC) id when querying a client under an MCC.
 - `google_resolve_customer` returns both when match is under a manager.
 
-## GAQL
+## GAQL (curated + hybrid)
 
-- Shared builders in `gaql.go`.
+- Shared builders: `gaql.go`, `report_queries.go`.
+- Validation + allowlist: `gaql_validate.go`, embedded `gaql_resources.txt`.
 - Date filters: `segments.date` with `YYYY-MM-DD`.
 - Enum filters: uppercase unquoted (`ENABLED`).
-- Report limits: default 500, max 1000.
+- Report limits: default 500, max 1000; `change_event` max 10000.
+- Field metadata: `POST {version}/googleAdsFields:search` (no customer id).
+
+## Hybrid agent workflow
+
+1. Prefer curated tools for common reports.
+2. When no curated tool fits: `google_get_resource_metadata` → `google_search_gaql`.
+3. Never guess GAQL fields.
 
 ## Schemas and agent docs
 
@@ -35,7 +48,7 @@ Use `proxy.go` / `googleGateway.requestJSON` — never call Google Ads directly.
 
 ## Tests
 
-Add `*_test.go` for GAQL builders, parsers, and account matching. Run:
+Add `*_test.go` for GAQL validation, query building, field-service parsing, and input parsers. Run:
 
 ```bash
 go test ./internal/provider/googleads/...

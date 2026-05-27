@@ -9,21 +9,21 @@ func customerContextSchema() map[string]any {
 
 func reportFiltersSchema(extra map[string]any) map[string]any {
 	props := map[string]any{
-		"customer_id":        customerContextSchema()["customer_id"],
-		"login_customer_id":  customerContextSchema()["login_customer_id"],
-		"campaign_ids":       map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-		"ad_group_ids":       map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-		"statuses":           map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-		"date_range_start":   map[string]any{"type": "string", "description": "YYYY-MM-DD"},
-		"date_range_end":     map[string]any{"type": "string", "description": "YYYY-MM-DD"},
-		"limit":              map[string]any{"type": "integer", "description": "Max rows (default 500, max 1000)."},
+		"customer_id":       customerContextSchema()["customer_id"],
+		"login_customer_id": customerContextSchema()["login_customer_id"],
+		"campaign_ids":      map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+		"ad_group_ids":      map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+		"statuses":          map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+		"date_range_start":  map[string]any{"type": "string", "description": "YYYY-MM-DD"},
+		"date_range_end":    map[string]any{"type": "string", "description": "YYYY-MM-DD"},
+		"limit":             map[string]any{"type": "integer", "description": "Max rows (default 500, max 1000)."},
 	}
 	for key, value := range extra {
 		props[key] = value
 	}
 	return map[string]any{
-		"type":     "object",
-		"required": []string{"customer_id"},
+		"type":       "object",
+		"required":   []string{"customer_id"},
 		"properties": props,
 	}
 }
@@ -101,4 +101,51 @@ func searchConversionPerformanceSchema() map[string]any {
 			"description": "Numeric conversion action ids or full resource names.",
 		},
 	})
+}
+
+func getResourceMetadataSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"resource_name"},
+		"properties": map[string]any{
+			"resource_name": map[string]any{
+				"type":        "string",
+				"description": "Google Ads GAQL resource (e.g. campaign, keyword_view, search_term_view).",
+			},
+		},
+	}
+}
+
+func searchGAQLSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"customer_id", "resource", "fields"},
+		"properties": map[string]any{
+			"customer_id":       customerContextSchema()["customer_id"],
+			"login_customer_id": customerContextSchema()["login_customer_id"],
+			"resource": map[string]any{
+				"type":        "string",
+				"description": "GAQL FROM resource; must be in the embedded allowlist.",
+			},
+			"fields": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Fully qualified field names (resource.*, metrics.*, segments.*).",
+			},
+			"conditions": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Optional WHERE fragments combined with AND.",
+			},
+			"orderings": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Optional ORDER BY fields.",
+			},
+			"limit": map[string]any{
+				"type":        "integer",
+				"description": "Max rows (default 500, max 1000; change_event max 10000).",
+			},
+		},
+	}
 }

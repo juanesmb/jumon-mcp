@@ -57,16 +57,16 @@ type searchAdsInput struct {
 
 type reportFilters struct {
 	customerContext
-	campaignIDs           []string
-	adGroupIDs            []string
-	statuses              []string
-	dateRangeStart        string
-	dateRangeEnd          string
-	limit                 int
-	keywordContains       string
-	searchTermContains    string
-	nameContains          string
-	conversionActionIDs   []string
+	campaignIDs         []string
+	adGroupIDs          []string
+	statuses            []string
+	dateRangeStart      string
+	dateRangeEnd        string
+	limit               int
+	keywordContains     string
+	searchTermContains  string
+	nameContains        string
+	conversionActionIDs []string
 }
 
 type accountRecord struct {
@@ -212,6 +212,34 @@ func parseConversionPerformanceFilters(params map[string]any) (reportFilters, er
 		filters.dateRangeEnd = end.Format("2006-01-02")
 	}
 	return filters, nil
+}
+
+func parseResourceMetadataInput(params map[string]any) (string, error) {
+	name := strings.TrimSpace(googleToString(params["resource_name"]))
+	if name == "" {
+		return "", fmt.Errorf("resource_name is required")
+	}
+	return name, nil
+}
+
+func parseGAQLSearchInput(params map[string]any) (gaqlSearchInput, error) {
+	ctx, err := parseCustomerContext(params)
+	if err != nil {
+		return gaqlSearchInput{}, err
+	}
+	resource := strings.TrimSpace(googleToString(params["resource"]))
+	if resource == "" {
+		return gaqlSearchInput{}, fmt.Errorf("resource is required")
+	}
+	fields := googleToStringSlice(params["fields"])
+	return gaqlSearchInput{
+		customerContext: ctx,
+		resource:        resource,
+		fields:          fields,
+		conditions:      googleToStringSlice(params["conditions"]),
+		orderings:       googleToStringSlice(params["orderings"]),
+		limit:           parseLimitParam(params),
+	}, nil
 }
 
 func googleNormalizeCustomerID(raw any) string {

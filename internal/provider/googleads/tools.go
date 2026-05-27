@@ -21,6 +21,8 @@ const (
 	toolGoogleSearchSearchTerms          = "google_search_search_terms"
 	toolGoogleListConversionActions      = "google_list_conversion_actions"
 	toolGoogleSearchConversionPerf       = "google_search_conversion_performance"
+	toolGoogleGetResourceMetadata        = "google_get_resource_metadata"
+	toolGoogleSearchGAQL                 = "google_search_gaql"
 )
 
 type Config struct {
@@ -189,6 +191,38 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client, config
 					return nil, err
 				}
 				return svc.searchConversionPerformance(ctx, userID, toolGoogleSearchConversionPerf, in)
+			},
+		},
+		{
+			Name:               toolGoogleGetResourceMetadata,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Discover selectable GAQL fields for a Google Ads resource.",
+			Description:        getResourceMetadataDescription(),
+			InputSchema:        getResourceMetadataSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				resourceName, err := parseResourceMetadataInput(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.getResourceMetadata(ctx, userID, toolGoogleGetResourceMetadata, resourceName)
+			},
+		},
+		{
+			Name:               toolGoogleSearchGAQL,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Run a validated GAQL query when no curated Google tool fits.",
+			Description:        searchGAQLDescription(),
+			InputSchema:        searchGAQLSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseGAQLSearchInput(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.searchGAQL(ctx, userID, toolGoogleSearchGAQL, in)
 			},
 		},
 	}

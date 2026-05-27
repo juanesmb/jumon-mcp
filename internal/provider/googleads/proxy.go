@@ -53,4 +53,3 @@ func (g *googleGateway) requestJSON(
 	}
 	return payload, nil
 }
-

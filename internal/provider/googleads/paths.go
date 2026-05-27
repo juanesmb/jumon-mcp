@@ -10,3 +10,6 @@ func pathGoogleAdsSearch(version, customerID string) string {
 	return fmt.Sprintf("%s/customers/%s/googleAds:search", version, customerID)
 }
 
+func pathGoogleAdsFieldsSearch(version string) string {
+	return fmt.Sprintf("%s/googleAdsFields:search", version)
+}
