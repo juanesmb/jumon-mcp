@@ -50,11 +50,15 @@ func resolveAutoPaginate(requested bool, pageToken string, forceAllPages bool) b
 }
 
 func parseSearchPagination(params map[string]any) searchPagination {
+	return parsePagination(params, defaultCampaignsPageSize)
+}
+
+func parsePagination(params map[string]any, defaultPageSize int) searchPagination {
 	autoPaginate := true
 	if v, ok := params["auto_paginate"].(bool); ok {
 		autoPaginate = v
 	}
-	pageSize := defaultCampaignsPageSize
+	pageSize := defaultPageSize
 	if ps, ok := toInt(params["page_size"]); ok && ps > 0 {
 		pageSize = ps
 	}

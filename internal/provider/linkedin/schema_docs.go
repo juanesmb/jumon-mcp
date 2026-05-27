@@ -92,7 +92,7 @@ var (
 			},
 		},
 		{
-			category: "Conversions",
+			category: "Website conversions (Insight Tag / Conversions API; use pivot CONVERSION to split by rule — MQL, SQL, etc.)",
 			fields: []string{
 				"externalWebsiteConversions",
 				"externalWebsitePostClickConversions",
@@ -162,12 +162,18 @@ var (
 			"costInLocalCurrency",
 			"externalWebsiteConversions",
 		},
-		// Conversion performance — call linkedin_list_conversions first to get rule IDs,
-		// then pivot by CAMPAIGN or CREATIVE to break down by funnel stage.
+		// Conversion by rule (pivot CONVERSION; map pivotValues URNs via linkedin_list_conversions)
 		{
 			"pivotValues",
-			"impressions",
-			"clicks",
+			"externalWebsiteConversions",
+			"externalWebsitePostClickConversions",
+			"externalWebsitePostViewConversions",
+			"conversionValueInLocalCurrency",
+			"costInLocalCurrency",
+		},
+		// Conversion by campaign × rule (finder_type statistics; pivots CAMPAIGN + CONVERSION)
+		{
+			"pivotValues",
 			"externalWebsiteConversions",
 			"externalWebsitePostClickConversions",
 			"externalWebsitePostViewConversions",
@@ -239,6 +245,10 @@ func buildAnalyticsFieldsDescription() string {
 	b.WriteString("MEMBER_* demographic pivots return top 100 values per creative per day and suppress values with fewer than 3 events. ")
 	b.WriteString("MEMBER_INDUSTRY rows include pivotLabels (human-readable names) alongside pivotValues URNs. ")
 	b.WriteString("Use time_granularity ALL for weekly totals (do not sum daily reach). ")
+	b.WriteString("For per-conversion-rule breakdown (MQL, SQL, demo booked, etc.), call linkedin_list_conversions first to map rule names, then linkedin_get_ad_analytics with pivot CONVERSION (one row per rule; pivotValues holds conversion URNs). ")
+	b.WriteString("Pivot CAMPAIGN or CREATIVE with externalWebsiteConversions returns the combined total across all rules — not a per-rule split. ")
+	b.WriteString("For campaign × conversion, use finder_type statistics with pivots [CAMPAIGN, CONVERSION]. ")
+	b.WriteString("qualifiedLeads and oneClickLeads are Lead Gen form metrics, not website conversion rules. ")
 	b.WriteString("For CRM revenue metrics use finder_type attributedRevenueMetrics (requires CRM connected to LinkedIn; date range 30–366 days; no time_granularity; pivots ACCOUNT, CAMPAIGN_GROUP, or CAMPAIGN only; openOpportunities and opportunityAmountInUsd only when date_range_end is today UTC). ")
 	b.WriteString("Viral variants exist (viralImpressions, viralVideoViews, etc.) — prefix viral to the paid metric name.")
 
@@ -252,6 +262,8 @@ func linkedInGetAdAnalyticsToolDescription() string {
 		"For multi-pivot breakdowns (e.g. campaign by placement), set finder_type statistics with up to 3 pivots. " +
 		"For CRM-attributed revenue (HubSpot, Salesforce, etc. connected to LinkedIn), use finder_type attributedRevenueMetrics. " +
 		"For WoW reports, call twice (current week + prior week) with time_granularity ALL. " +
-		"For conversion performance, first call linkedin_list_conversions to get rule names, then request externalWebsiteConversions / externalWebsitePostClickConversions / externalWebsitePostViewConversions / conversionValueInLocalCurrency pivoted by CAMPAIGN or CREATIVE. " +
+		"For conversion breakdown by rule (MQL, SQL, etc.), call linkedin_list_conversions for rule names, then linkedin_get_ad_analytics with pivots [CONVERSION] and fields externalWebsiteConversions / externalWebsitePostClickConversions / externalWebsitePostViewConversions / conversionValueInLocalCurrency. " +
+		"For campaign × conversion, use finder_type statistics with pivots [CAMPAIGN, CONVERSION]. " +
+		"Pivoting by CAMPAIGN or CREATIVE alone returns combined conversion totals, not per-rule splits. " +
 		"Pagination uses start/count offsets (default auto_paginate true). Pass page_token from paging.links[rel=next] to fetch a specific page manually."
 }

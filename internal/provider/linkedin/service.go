@@ -12,6 +12,7 @@ import (
 
 const (
 	defaultCampaignsPageSize = 100
+	defaultAnalyticsPageSize = 10
 	maxAutoPaginatePages     = 20
 )
 
@@ -358,7 +359,7 @@ func parseGetAnalyticsInput(params map[string]any) (getAnalyticsInput, error) {
 		endDate = v
 	}
 
-	paging := parseAnalyticsPagination(params)
+	paging := parsePagination(params, defaultAnalyticsPageSize)
 
 	return getAnalyticsInput{
 		accountID:        accountID,

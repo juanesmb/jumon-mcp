@@ -7,24 +7,6 @@ import (
 	"strings"
 )
 
-const defaultAnalyticsPageSize = 10
-
-func parseAnalyticsPagination(params map[string]any) searchPagination {
-	autoPaginate := true
-	if v, ok := params["auto_paginate"].(bool); ok {
-		autoPaginate = v
-	}
-	pageSize := defaultAnalyticsPageSize
-	if ps, ok := toInt(params["page_size"]); ok && ps > 0 {
-		pageSize = ps
-	}
-	return searchPagination{
-		autoPaginate: autoPaginate,
-		pageSize:     pageSize,
-		pageToken:    strings.TrimSpace(toString(params["page_token"])),
-	}
-}
-
 func applyAnalyticsPagination(query map[string]string, pageToken string, pageSize int) {
 	if pageSize > 0 {
 		query["count"] = strconv.Itoa(pageSize)

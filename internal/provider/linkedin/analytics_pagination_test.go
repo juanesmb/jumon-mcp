@@ -159,41 +159,20 @@ func TestFetchAnalyticsPages_stopsWhenPageRepeatsPivots(t *testing.T) {
 	}
 }
 
-func TestFetchAnalyticsPages_pageTokenUsesStartOffset(t *testing.T) {
+func TestApplyAnalyticsPagination_setsStartAndCount(t *testing.T) {
 	t.Parallel()
 
-	stub := &stubLinkedInUpstream{
-		pages: []any{
-			map[string]any{
-				"elements": []any{map[string]any{"pivotValues": []any{"urn:li:sponsoredCampaign:2"}}},
-				"paging":   map[string]any{"start": 10, "count": 10},
-			},
-		},
+	query := map[string]string{"q": "analytics"}
+	applyAnalyticsPagination(query, "10", 10)
+	if query["start"] != "10" {
+		t.Fatalf("start = %q, want 10", query["start"])
 	}
-
-	query := map[string]string{"q": "analytics", "count": "10", "start": "10"}
-	result, err := fetchAnalyticsPages(context.Background(), stub, "user", "tool", query, false)
-	if err != nil {
-		t.Fatalf("fetchAnalyticsPages() error = %v", err)
-	}
-
-	page, ok := result.(map[string]any)
-	if !ok {
-		t.Fatalf("result type = %T", result)
-	}
-	elements, ok := page["elements"].([]any)
-	if !ok || len(elements) != 1 {
-		t.Fatalf("elements = %#v, want 1 item", page["elements"])
-	}
-	if stub.calls != 1 {
-		t.Fatalf("request calls = %d, want 1", stub.calls)
-	}
-	if stub.queries[0]["start"] != "10" {
-		t.Fatalf("start = %q, want 10", stub.queries[0]["start"])
+	if query["count"] != "10" {
+		t.Fatalf("count = %q, want 10", query["count"])
 	}
 }
 
-func TestGetAnalytics_appliesPageTokenAndAutoPaginate(t *testing.T) {
+func TestGetAnalytics_autoPaginateMergesPages(t *testing.T) {
 	t.Parallel()
 
 	stub := &stubLinkedInUpstream{

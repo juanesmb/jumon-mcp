@@ -160,7 +160,7 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error 
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Lists LinkedIn conversion rules for an ad account.",
-			Description:        "Fetches conversion tracking rules for the given account using GET /rest/conversions?q=account. Use the returned conversion IDs/URNs to filter analytics by specific conversion events in linkedin_get_ad_analytics. Set enabled_only=true to exclude paused rules.",
+			Description:        "Fetches conversion tracking rules for the given account using GET /rest/conversions?q=account. Each rule has a name (e.g. MQL, SQL) and URN. Use with linkedin_get_ad_analytics pivoted by CONVERSION to map pivotValues back to rule names and split externalWebsiteConversions by funnel stage. Set enabled_only=true to exclude paused rules.",
 			InputSchema:        listConversionsSchema(),
 			RequiresConnection: true,
 			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
@@ -315,9 +315,11 @@ func getAnalyticsSchema() map[string]any {
 				"type":  "array",
 				"items": map[string]any{"type": "string"},
 				"description": "Grouping dimension(s). finder_type analytics (default) uses only the first pivot (singular pivot=). " +
-					"finder_type statistics accepts 1–3 pivots (pivots=List(...)) for multi-dimensional breakdowns, e.g. CAMPAIGN + PLACEMENT_NAME. " +
+					"finder_type statistics accepts 1–3 pivots (pivots=List(...)) for multi-dimensional breakdowns, e.g. CAMPAIGN + PLACEMENT_NAME or CAMPAIGN + CONVERSION. " +
 					"finder_type attributedRevenueMetrics accepts 1–3 pivots: ACCOUNT, CAMPAIGN_GROUP, or CAMPAIGN only. " +
 					"Structure: ACCOUNT, CAMPAIGN_GROUP, CAMPAIGN, CREATIVE, SHARE, COMPANY, CONVERSION. " +
+					"Use CONVERSION to split website conversions by tracking rule (MQL, SQL, etc.); call linkedin_list_conversions first to resolve pivotValues URNs to rule names. " +
+					"CAMPAIGN or CREATIVE pivot with externalWebsiteConversions returns combined totals across all rules, not per-rule breakdown. " +
 					"Demographics: MEMBER_COMPANY_SIZE, MEMBER_INDUSTRY, MEMBER_SENIORITY, MEMBER_JOB_TITLE, MEMBER_JOB_FUNCTION, MEMBER_COUNTRY_V2, MEMBER_REGION_V2, MEMBER_COMPANY. " +
 					"Other: SERVING_LOCATION, PLACEMENT_NAME, OBJECTIVE_TYPE, CARD_INDEX, IMPRESSION_DEVICE_TYPE, EVENT_STAGE. " +
 					"Reach and averageFrequency are unavailable on MEMBER_* pivots (top-100 values per creative per day; min 3 events per value). Each row includes pivotValues; MEMBER_INDUSTRY responses also include pivotLabels (human-readable industry names).",
@@ -326,6 +328,8 @@ func getAnalyticsSchema() map[string]any {
 					{"CAMPAIGN_GROUP"},
 					{"ACCOUNT"},
 					{"CREATIVE"},
+					{"CONVERSION"},
+					{"CAMPAIGN", "CONVERSION"},
 					{"CAMPAIGN", "PLACEMENT_NAME"},
 					{"MEMBER_INDUSTRY"},
 					{"MEMBER_SENIORITY"},

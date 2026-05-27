@@ -22,6 +22,9 @@ func TestBuildAnalyticsFieldsDescription_includesCatalogAndConstraints(t *testin
 		"not top-level field projections",
 		"no time_granularity",
 		"pivotLabels",
+		"pivot CONVERSION",
+		"linkedin_list_conversions",
+		"qualifiedLeads",
 	} {
 		if !strings.Contains(desc, needle) {
 			t.Fatalf("description missing %q:\n%s", needle, desc)
