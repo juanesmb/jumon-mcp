@@ -20,7 +20,7 @@ func (r *GatewayConnectionReader) IsConnected(ctx context.Context, provider, use
 	if err != nil {
 		return false, fmt.Errorf("connection check for %s: %w", provider, err)
 	}
-	return gateway.IsProviderConnected(resp), nil
+	return gateway.IsProviderUsable(resp), nil
 }
 
 func (r *GatewayConnectionReader) ConnectURL() string {

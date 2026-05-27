@@ -30,7 +30,9 @@ Workflow: explore → load schemas → execute. See `internal/app/instructions/s
 
 - Clerk JWT on every MCP request; user ID extracted from token context.
 - **No token storage in Go.** All provider API calls go through the gateway in mcp-ads-manager.
-- On 401 from proxy, auto-retry after calling refresh (`ProxyProviderOrRefresh`).
+- MCP tool gating uses gateway **`usable`**, not `connected` alone (`IsProviderUsable`).
+- Gateway proxy refreshes tokens proactively and on 401; jumon-mcp `ProxyProviderOrRefresh` retries only when refresh returns `refreshed: true`.
+- Auth failures surface as `platform_not_connected` or `TOKEN_REFRESH_FAILED` with `connect_url`.
 - Tool names: `{platform}_{action}` (e.g. `linkedin_get_campaigns`).
 
 ## Gateway contract

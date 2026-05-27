@@ -73,13 +73,20 @@ func (c *Client) ProxyProviderOrRefresh(ctx context.Context, provider, mcpTool, 
 	if resp.StatusCode != 401 {
 		return resp, nil
 	}
-	if _, err := c.RefreshProvider(ctx, provider, userID); err != nil {
+	if IsTokenRefreshFailed(resp) {
+		return resp, nil
+	}
+	refreshResp, err := c.RefreshProvider(ctx, provider, userID)
+	if err != nil {
+		return resp, nil
+	}
+	if !RefreshSucceeded(refreshResp) {
 		return resp, nil
 	}
 	return c.ProxyProvider(ctx, provider, mcpTool, userID, method, proxyPath, query, body, headers)
 }
 
-func IsProviderConnected(resp *infrahttp.Response) bool {
+func RefreshSucceeded(resp *infrahttp.Response) bool {
 	if resp == nil || resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return false
 	}
@@ -87,8 +94,27 @@ func IsProviderConnected(resp *infrahttp.Response) bool {
 	if err := json.Unmarshal(resp.Body, &payload); err != nil {
 		return false
 	}
+	refreshed, ok := payload["refreshed"].(bool)
+	return ok && refreshed
+}
+
+func IsProviderUsable(resp *infrahttp.Response) bool {
+	if resp == nil || resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return false
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(resp.Body, &payload); err != nil {
+		return false
+	}
+	if usable, ok := payload["usable"].(bool); ok {
+		return usable
+	}
 	connected, ok := payload["connected"].(bool)
-	return ok && connected
+	if !ok || !connected {
+		return false
+	}
+	health, _ := payload["health"].(string)
+	return health != "needs_reconnect"
 }
 
 func IsNotConnectedResponse(resp *infrahttp.Response) bool {
@@ -98,6 +124,9 @@ func IsNotConnectedResponse(resp *infrahttp.Response) bool {
 	if resp.StatusCode == 404 {
 		return true
 	}
+	if IsTokenRefreshFailed(resp) {
+		return true
+	}
 	if len(resp.Body) == 0 {
 		return false
 	}
@@ -105,7 +134,13 @@ func IsNotConnectedResponse(resp *infrahttp.Response) bool {
 	if err := json.Unmarshal(resp.Body, &payload); err != nil {
 		return false
 	}
+	if usable, ok := payload["usable"].(bool); ok && !usable {
+		return true
+	}
 	if connected, ok := payload["connected"].(bool); ok && !connected {
+		return true
+	}
+	if health, ok := payload["health"].(string); ok && health == "needs_reconnect" {
 		return true
 	}
 	if code, ok := payload["code"].(string); ok {
@@ -115,6 +150,18 @@ func IsNotConnectedResponse(resp *infrahttp.Response) bool {
 		}
 	}
 	return false
+}
+
+func IsTokenRefreshFailed(resp *infrahttp.Response) bool {
+	if resp == nil || len(resp.Body) == 0 {
+		return false
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(resp.Body, &payload); err != nil {
+		return false
+	}
+	code, ok := payload["code"].(string)
+	return ok && strings.TrimSpace(code) == "TOKEN_REFRESH_FAILED"
 }
 
 func (c *Client) authHeaders() map[string]string {

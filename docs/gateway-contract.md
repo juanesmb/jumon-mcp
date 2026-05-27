@@ -18,29 +18,40 @@ Env: `GATEWAY_BASE_URL` or `JUMON_GATEWAY_BASE_URL` — base URL of the web app 
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/api/internal/connections/{provider}/current?userId=` | Connection status |
-| POST | `/api/internal/providers/{provider}/proxy` | Proxy provider API call |
+| GET | `/api/internal/connections/{provider}/current?userId=` | Connection health (`connected`, `usable`, `health`) |
+| POST | `/api/internal/providers/{provider}/proxy` | Proxy provider API call (proactive + reactive refresh) |
 | POST | `/api/internal/providers/{provider}/refresh` | Refresh OAuth token |
 
 Providers: `linkedin`, `google`, `reddit`.
 
-## Proxy body (essential)
+## Connection health (essential)
 
 ```json
 {
-  "userId": "user_abc",
-  "mcpTool": "linkedin_get_campaigns",
-  "method": "GET",
-  "path": "adAccounts/123/adCampaigns",
-  "query": {},
-  "headers": {}
+  "connected": true,
+  "usable": false,
+  "health": "needs_reconnect",
+  "healthReason": "refresh_failed"
+}
+```
+
+- **`usable`**: gate MCP tools and execution (not `connected` alone).
+- **`health`**: `active` | `needs_reconnect` | `disconnected`.
+
+## Proxy auth failure
+
+```json
+{
+  "code": "TOKEN_REFRESH_FAILED",
+  "reconnectRequired": true
 }
 ```
 
 ## Implementation
 
 - Client: `internal/infrastructure/gateway/client.go`
-- Auto-refresh on 401: `ProxyProviderOrRefresh`
-- Provider wrappers: each provider's `proxy.go`
+- `IsProviderUsable` / `RefreshSucceeded` / `IsTokenRefreshFailed`
+- Registry connection check: `internal/provider/registry/connections.go` uses `usable`
+- Provider wrappers: each provider's `proxy.go` maps auth failures to reconnect errors
 
 **Never store or decrypt tokens in this repo.**

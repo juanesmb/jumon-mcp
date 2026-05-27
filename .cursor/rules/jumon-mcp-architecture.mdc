@@ -15,7 +15,9 @@ Only two tools are exposed to clients: `explore_platform` and `execute_platform_
 
 - **No token storage.** All provider API calls go through the gateway client in `internal/infrastructure/gateway`.
 - Clerk JWT required on every MCP request; user ID from request context.
-- On proxy 401, use `ProxyProviderOrRefresh` to refresh then retry.
+- Registry gates tools on gateway `usable` (`IsProviderUsable`), not row existence.
+- On proxy 401, `ProxyProviderOrRefresh` retries only if refresh returns `refreshed: true`.
+- `TOKEN_REFRESH_FAILED` from gateway maps to reconnect guidance (see `docs/gateway-contract.md`).
 - Tool naming: `{platform}_{snake_case_action}` (e.g. `linkedin_get_ad_analytics`).
 
 ## Registration flow
