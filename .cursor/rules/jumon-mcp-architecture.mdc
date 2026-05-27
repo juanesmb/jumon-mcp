@@ -1,0 +1,25 @@
+---
+description: Jumon MCP facade architecture and security invariants
+alwaysApply: true
+---
+
+# jumon-mcp architecture
+
+Read [AGENTS.md](../../AGENTS.md) for the repo map and task index.
+
+## MCP surface
+
+Only two tools are exposed to clients: `explore_platform` and `execute_platform_tool`. Provider-specific tools are registered internally, not as top-level MCP tools.
+
+## Invariants
+
+- **No token storage.** All provider API calls go through the gateway client in `internal/infrastructure/gateway`.
+- Clerk JWT required on every MCP request; user ID from request context.
+- On proxy 401, use `ProxyProviderOrRefresh` to refresh then retry.
+- Tool naming: `{platform}_{snake_case_action}` (e.g. `linkedin_get_ad_analytics`).
+
+## Registration flow
+
+`internal/app/wire.go` → provider `RegisterTools` → `internal/provider/registry/registry.go`.
+
+OAuth and token decryption live in **mcp-ads-manager**. Gateway contract: [docs/gateway-contract.md](../../docs/gateway-contract.md).

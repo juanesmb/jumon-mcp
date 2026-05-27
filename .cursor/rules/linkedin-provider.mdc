@@ -1,0 +1,33 @@
+---
+description: LinkedIn provider tool conventions, schemas, and pagination
+globs: internal/provider/linkedin/**
+alwaysApply: false
+---
+
+# LinkedIn provider
+
+## Tool naming
+
+All tools prefixed `linkedin_`. Register in `tools.go`, implement in `service.go`.
+
+## Gateway proxy
+
+Use `proxy.go` / `linkedinGateway.requestJSON` — never call LinkedIn directly. Required headers: `Linkedin-Version`, `X-Restli-Protocol-Version`.
+
+## Schemas and agent docs
+
+- Input JSON schemas: functions in `tools.go` (e.g. `getCampaignsSchema()`).
+- Agent-facing metric/pivot catalog: `schema_docs.go`.
+- Keep schemas aligned with LinkedIn Ads Reporting API docs.
+
+## Pagination
+
+Reuse patterns from `pagination.go` and `analytics_pagination.go`. Support `auto_paginate`, `page_size`, `page_token` where applicable. Cap auto-pagination pages (`maxAutoPaginatePages`).
+
+## Tests
+
+Add `*_test.go` for input parsing, pagination edge cases, and schema helpers. Run: `go test ./internal/provider/linkedin/...`
+
+## Analytics roadmap
+
+See `docs/linkedin-analytics-roadmap.md` for planned and shipped analytics features.

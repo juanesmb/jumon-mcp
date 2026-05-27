@@ -1,0 +1,27 @@
+---
+description: ToolDefinition registration checklist for provider tools
+globs: internal/provider/**/tools.go
+alwaysApply: false
+---
+
+# Provider tool registration
+
+Each tool is a `registry.ToolDefinition` in the provider's `tools.go`:
+
+- `Name`, `Platform`, `Action` (`catalog.ToolActionRead` etc.)
+- `Summary`, `Description` (agent-facing)
+- `InputSchema` (JSON Schema object)
+- `RequiresConnection: true` for ad platform tools
+- `Execute` closure: parse params → call service method
+
+## Checklist for a new tool
+
+1. Add constant for tool name.
+2. Append `ToolDefinition` to the tools slice in `RegisterTools`.
+3. Implement service method; call gateway via provider `proxy.go`.
+4. Add input parser and schema function.
+5. Add tests in the same provider package.
+6. For LinkedIn: update `schema_docs.go` when agents need metric/pivot guidance.
+7. Sync UI blurb in mcp-ads-manager `apps/web/lib/mcp-provider-tools.ts`.
+
+Reference implementation: `linkedin_get_campaign_groups` in `internal/provider/linkedin/`.
