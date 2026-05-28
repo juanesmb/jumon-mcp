@@ -8,10 +8,13 @@ alwaysApply: false
 
 ## Tool naming
 
-All tools prefixed `google_`. Register in `tools.go`; implement in:
+All tools prefixed `google_`. **14 tools** registered in `tools.go`; implement in:
 
 - `accounts.go` — account discovery
-- `reports.go`, `report_queries.go`, `reports_legacy.go` — curated P1 reports
+- `reports.go`, `report_search.go`, `report_queries.go`, `reports_legacy.go` — curated reports
+- `search_response.go` — empty-result hints + channel sniff
+- `google_search_pagination.go` — auto-pagination (`auto_paginate`, default true)
+- `google_observability.go` — span attributes + failure logs
 - `field_service.go` — `google_get_resource_metadata`
 - `generic_search.go` — `google_search_gaql`
 
@@ -29,10 +32,20 @@ Use `proxy.go` / `googleGateway.requestJSON` — never call Google Ads directly.
 
 - Shared builders: `gaql.go`, `report_queries.go`.
 - Validation + allowlist: `gaql_validate.go`, embedded `gaql_resources.txt`.
+- Attributed prefixes allowed: `campaign`, `ad_group`, `customer`, `ad_group_ad`, `asset_group` (not a full compatibility matrix).
 - Date filters: `segments.date` with `YYYY-MM-DD`.
 - Enum filters: uppercase unquoted (`ENABLED`).
-- Report limits: default 500, max 1000; `change_event` max 10000.
+- Report limits: default 500, max 1000 per page; `change_event` max 10000; auto-paginate up to 10 pages.
 - Field metadata: `POST {version}/googleAdsFields:search` (no customer id).
+
+## Search term tools
+
+| User ask | Tool | Resource |
+|----------|------|----------|
+| Search campaign queries | `google_search_search_terms` | `search_term_view` |
+| Performance Max queries | `google_search_pmax_search_terms` | `campaign_search_term_view` |
+
+Empty Search reports return `hint` + `channel_summary`.
 
 ## Hybrid agent workflow
 
@@ -45,14 +58,18 @@ Use `proxy.go` / `googleGateway.requestJSON` — never call Google Ads directly.
 - Input JSON schemas: `schemas.go`.
 - Long descriptions: `schema_docs.go`.
 - Product matrix: [docs/google-ads-tools.md](../../docs/google-ads-tools.md).
+- Smoke tests: [docs/google-ads-smoke-tests.md](../../docs/google-ads-smoke-tests.md).
+- API version: [docs/google-ads-api-version.md](../../docs/google-ads-api-version.md).
 
 ## Tests
 
-Add `*_test.go` for GAQL validation, query building, field-service parsing, and input parsers. Run:
+Add `*_test.go` for GAQL validation, query building, pagination, field-service parsing, and input parsers. Run:
 
 ```bash
 go test ./internal/provider/googleads/...
 ```
+
+CI: `.github/workflows/test.yml`.
 
 ## UI catalog sync
 

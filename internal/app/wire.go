@@ -42,7 +42,11 @@ func initComponents(cfg config.Config, rec *observability.Recorder) (*components
 	if err := linkedin.RegisterTools(toolRegistry, gatewayClient); err != nil {
 		return nil, err
 	}
-	if err := googleads.RegisterTools(toolRegistry, gatewayClient, googleads.Config{APIVersion: cfg.Gateway.GoogleAPIVersion}); err != nil {
+	if err := googleads.RegisterTools(toolRegistry, gatewayClient, googleads.Config{
+		APIVersion:            cfg.Gateway.GoogleAPIVersion,
+		MaxAccessibleAccounts: cfg.Gateway.GoogleMaxAccessibleAccounts,
+		MaxManagerScan:        cfg.Gateway.GoogleMaxManagerScan,
+	}); err != nil {
 		return nil, err
 	}
 	if err := reddit.RegisterTools(toolRegistry, gatewayClient); err != nil {

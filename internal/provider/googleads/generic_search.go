@@ -12,8 +12,10 @@ func (s *service) searchGAQL(ctx context.Context, userID, mcpTool string, in gaq
 	in.resource = resource
 
 	query := buildGenericSearchQuery(in, resource)
-	result, err := s.googleSearch(ctx, userID, mcpTool, in.customerID, in.loginCustomerID, query)
+	annotateGoogleSpan(ctx, in.customerID, resource, mcpTool)
+	result, err := s.googleSearchPaginated(ctx, userID, mcpTool, in.customerID, in.loginCustomerID, query, in.autoPaginate)
 	if err != nil {
+		logGoogleSearchFailure(ctx, mcpTool, in.customerID, resource, query, err)
 		return nil, err
 	}
 

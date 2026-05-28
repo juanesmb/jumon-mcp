@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -30,11 +31,13 @@ type AuthConfig struct {
 }
 
 type GatewayConfig struct {
-	BaseURL            string
-	InternalSecret     string
-	ConnectURL         string
-	LinkedInAPIBaseURL string
-	GoogleAPIVersion   string
+	BaseURL                   string
+	InternalSecret            string
+	ConnectURL                string
+	LinkedInAPIBaseURL        string
+	GoogleAPIVersion          string
+	GoogleMaxAccessibleAccounts int
+	GoogleMaxManagerScan        int
 }
 
 // ObservabilityConfig controls OpenTelemetry exporters (Cloud Trace / Cloud Monitoring) and log correlation fields.
@@ -92,11 +95,13 @@ func Read() Config {
 			DebugAuth:              envTruthy("MCP_DEBUG_AUTH"),
 		},
 		Gateway: GatewayConfig{
-			BaseURL:            gatewayBaseURL,
-			InternalSecret:     gatewayInternalSecret(),
-			ConnectURL:         deriveConnectURL(gatewayBaseURL),
-			LinkedInAPIBaseURL: linkedInBaseURL,
-			GoogleAPIVersion:   googleAPIVersion,
+			BaseURL:                     gatewayBaseURL,
+			InternalSecret:              gatewayInternalSecret(),
+			ConnectURL:                  deriveConnectURL(gatewayBaseURL),
+			LinkedInAPIBaseURL:          linkedInBaseURL,
+			GoogleAPIVersion:            googleAPIVersion,
+			GoogleMaxAccessibleAccounts: envPositiveInt("GOOGLE_MAX_ACCESSIBLE_ACCOUNTS", 100),
+			GoogleMaxManagerScan:        envPositiveInt("GOOGLE_MAX_MANAGER_SCAN", 10),
 		},
 		Observability: readObservabilityConfig(gcpProject),
 	}
@@ -175,4 +180,16 @@ func deriveConnectURL(gatewayURL string) string {
 func envTruthy(key string) bool {
 	value := strings.ToLower(strings.TrimSpace(os.Getenv(key)))
 	return value == "1" || value == "true" || value == "yes"
+}
+
+func envPositiveInt(key string, fallback int) int {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n <= 0 {
+		return fallback
+	}
+	return n
 }

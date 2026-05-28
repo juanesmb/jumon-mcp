@@ -37,7 +37,13 @@ Workflow: explore → load schemas → execute. See `internal/app/instructions/s
 
 ## Gateway contract
 
-See [docs/gateway-contract.md](docs/gateway-contract.md). OAuth + token decryption live in **mcp-ads-manager**.
+See [docs/gateway-contract.md](docs/gateway-contract.md). OAuth + token decryption live in **mcp-ads-manager**. Production OAuth monitoring: mcp-ads-manager [docs/oauth-production-monitoring.md](https://github.com/jumonintelligence/mcp-ads-manager/blob/main/docs/oauth-production-monitoring.md).
+
+## Google Ads docs
+
+- [docs/google-ads-tools.md](docs/google-ads-tools.md) — capability matrix (14 tools)
+- [docs/google-ads-smoke-tests.md](docs/google-ads-smoke-tests.md) — manual regression checklist
+- [docs/google-ads-api-version.md](docs/google-ads-api-version.md) — API version upgrade policy
 
 ## Start here
 

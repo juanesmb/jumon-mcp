@@ -7,9 +7,11 @@ import (
 )
 
 const (
-	maxAccessibleAccounts = 50
-	maxManagerScan        = 5
+	defaultMaxAccessibleAccounts = 100
+	defaultMaxManagerScan        = 10
 )
+
+const listAdAccountsTruncatedMessage = "Account list was truncated. Use google_list_client_accounts_under_manager with client_name_contains to find clients under a specific MCC, or google_resolve_customer with account_name."
 
 type customerContext struct {
 	customerID      string
@@ -63,6 +65,7 @@ type reportFilters struct {
 	dateRangeStart      string
 	dateRangeEnd        string
 	limit               int
+	autoPaginate        bool
 	keywordContains     string
 	searchTermContains  string
 	nameContains        string
@@ -193,11 +196,22 @@ func parseReportFilters(params map[string]any) (reportFilters, error) {
 		dateRangeStart:      googleToString(params["date_range_start"]),
 		dateRangeEnd:        googleToString(params["date_range_end"]),
 		limit:               parseLimitParam(params),
+		autoPaginate:        parseAutoPaginateParam(params),
 		keywordContains:     googleToString(params["keyword_contains"]),
 		searchTermContains:  googleToString(params["search_term_contains"]),
 		nameContains:        googleToString(params["name_contains"]),
 		conversionActionIDs: googleToStringSlice(params["conversion_action_ids"]),
 	}, nil
+}
+
+func parseAutoPaginateParam(params map[string]any) bool {
+	if raw, ok := params["auto_paginate"]; ok {
+		switch v := raw.(type) {
+		case bool:
+			return v
+		}
+	}
+	return true
 }
 
 func parseConversionPerformanceFilters(params map[string]any) (reportFilters, error) {
@@ -239,6 +253,7 @@ func parseGAQLSearchInput(params map[string]any) (gaqlSearchInput, error) {
 		conditions:      googleToStringSlice(params["conditions"]),
 		orderings:       googleToStringSlice(params["orderings"]),
 		limit:           parseLimitParam(params),
+		autoPaginate:    parseAutoPaginateParam(params),
 	}, nil
 }
 

@@ -13,11 +13,15 @@ func (s *service) listAdAccounts(ctx context.Context, userID, mcpTool string) (a
 	if err != nil {
 		return nil, err
 	}
+	message := listAdAccountsMessage
+	if truncated {
+		message = listAdAccountsMessage + " " + listAdAccountsTruncatedMessage
+	}
 	return map[string]any{
 		"accounts":            accounts,
 		"truncated":           truncated,
 		"skipped_unavailable": skipped,
-		"message":             listAdAccountsMessage,
+		"message":             message,
 	}, nil
 }
 
@@ -57,7 +61,7 @@ func (s *service) resolveCustomer(ctx context.Context, userID, mcpTool string, i
 			if !account.Manager {
 				continue
 			}
-			if managerCount >= maxManagerScan {
+			if managerCount >= s.maxManagerScan {
 				break
 			}
 			managerCount++
@@ -130,9 +134,9 @@ func (s *service) fetchAccessibleAccountRecords(ctx context.Context, userID, mcp
 	}
 
 	ids := extractAccessibleCustomerIDs(raw)
-	truncated := len(ids) > maxAccessibleAccounts
+	truncated := len(ids) > s.maxAccessibleAccounts
 	if truncated {
-		ids = ids[:maxAccessibleAccounts]
+		ids = ids[:s.maxAccessibleAccounts]
 	}
 
 	accounts := make([]accountRecord, 0, len(ids))

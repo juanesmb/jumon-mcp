@@ -31,6 +31,12 @@ func TestValidateGAQLFieldName(t *testing.T) {
 	if err := validateGAQLFieldName("campaign.*", "campaign"); err == nil {
 		t.Fatal("wildcard should fail")
 	}
+	if err := validateGAQLFieldName("campaign.name", "campaign_search_term_view"); err != nil {
+		t.Fatalf("attributed field should pass: %v", err)
+	}
+	if err := validateGAQLFieldName("unknown_field.xyz", "campaign_search_term_view"); err == nil {
+		t.Fatal("unknown prefix should fail")
+	}
 }
 
 func TestBuildGenericSearchQuery(t *testing.T) {

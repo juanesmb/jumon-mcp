@@ -64,11 +64,12 @@ func normalizeGAQLResourceName(raw string) (string, error) {
 
 type gaqlSearchInput struct {
 	customerContext
-	resource   string
-	fields     []string
-	conditions []string
-	orderings  []string
-	limit      int
+	resource     string
+	fields       []string
+	conditions   []string
+	orderings    []string
+	limit        int
+	autoPaginate bool
 }
 
 func validateGAQLSearchInput(in gaqlSearchInput) (string, error) {
@@ -112,10 +113,26 @@ func validateGAQLFieldName(field, resource string) error {
 		return fmt.Errorf("field %q must be fully qualified (e.g. %s.id, metrics.clicks)", field, resource)
 	}
 	prefix := strings.SplitN(trimmed, ".", 2)[0]
-	if prefix != resource && prefix != "metrics" && prefix != "segments" {
-		return fmt.Errorf("field %q must start with %q, metrics., or segments.", field, resource)
+	if prefix == resource || prefix == "metrics" || prefix == "segments" {
+		return nil
 	}
-	return nil
+	if isAllowedGAQLAttributedPrefix(prefix) {
+		return nil
+	}
+	return fmt.Errorf("field %q is not allowed by local guard; call google_get_resource_metadata and use only listed selectable fields", field)
+}
+
+var gaqlAttributedPrefixes = map[string]struct{}{
+	"campaign":    {},
+	"ad_group":    {},
+	"customer":    {},
+	"ad_group_ad": {},
+	"asset_group": {},
+}
+
+func isAllowedGAQLAttributedPrefix(prefix string) bool {
+	_, ok := gaqlAttributedPrefixes[prefix]
+	return ok
 }
 
 func validateGAQLFragment(value, label string) error {

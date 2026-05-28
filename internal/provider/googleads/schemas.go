@@ -16,7 +16,11 @@ func reportFiltersSchema(extra map[string]any) map[string]any {
 		"statuses":          map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
 		"date_range_start":  map[string]any{"type": "string", "description": "YYYY-MM-DD"},
 		"date_range_end":    map[string]any{"type": "string", "description": "YYYY-MM-DD"},
-		"limit":             map[string]any{"type": "integer", "description": "Max rows (default 500, max 1000)."},
+		"limit":          map[string]any{"type": "integer", "description": "Max rows (default 500, max 1000)."},
+		"auto_paginate": map[string]any{
+			"type":        "boolean",
+			"description": "When true (default), follows nextPageToken to merge up to 10 pages of results.",
+		},
 	}
 	for key, value := range extra {
 		props[key] = value
@@ -53,7 +57,7 @@ func resolveCustomerSchema() map[string]any {
 			},
 			"search_under_managers": map[string]any{
 				"type":        "boolean",
-				"description": "When true (default), also search client accounts under accessible MCCs (max 5).",
+				"description": "When true (default), also search client accounts under accessible MCCs (max 10).",
 			},
 		},
 	}
@@ -87,10 +91,20 @@ func searchSearchTermsSchema() map[string]any {
 	})
 }
 
+func searchPmaxSearchTermsSchema() map[string]any {
+	return reportFiltersSchema(map[string]any{
+		"search_term_contains": map[string]any{"type": "string", "description": "Filter PMax search term text (LIKE)."},
+	})
+}
+
 func listConversionActionsSchema() map[string]any {
 	return reportFiltersSchema(map[string]any{
 		"name_contains": map[string]any{"type": "string", "description": "Filter conversion action name (LIKE)."},
 	})
+}
+
+func listOfflineConversionUploadSummariesSchema() map[string]any {
+	return listConversionActionsSchema()
 }
 
 func searchConversionPerformanceSchema() map[string]any {
@@ -145,6 +159,10 @@ func searchGAQLSchema() map[string]any {
 			"limit": map[string]any{
 				"type":        "integer",
 				"description": "Max rows (default 500, max 1000; change_event max 10000).",
+			},
+			"auto_paginate": map[string]any{
+				"type":        "boolean",
+				"description": "When true (default), follows nextPageToken to merge up to 10 pages of results.",
 			},
 		},
 	}

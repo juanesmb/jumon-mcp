@@ -7,35 +7,27 @@ import (
 )
 
 type service struct {
-	proxy      googleUpstreamPort
-	apiVersion string
+	proxy                 googleUpstreamPort
+	apiVersion            string
+	maxAccessibleAccounts int
+	maxManagerScan        int
 }
 
 func newGoogleService(client *gateway.Client, config Config) *service {
+	maxAccounts := config.MaxAccessibleAccounts
+	if maxAccounts <= 0 {
+		maxAccounts = defaultMaxAccessibleAccounts
+	}
+	maxManagers := config.MaxManagerScan
+	if maxManagers <= 0 {
+		maxManagers = defaultMaxManagerScan
+	}
 	return &service{
-		proxy:      newGoogleGateway(client),
-		apiVersion: config.APIVersion,
+		proxy:                 newGoogleGateway(client),
+		apiVersion:            config.APIVersion,
+		maxAccessibleAccounts: maxAccounts,
+		maxManagerScan:        maxManagers,
 	}
-}
-
-func (s *service) googleSearch(
-	ctx context.Context,
-	userID, mcpTool,
-	customerID, loginCustomerID,
-	query string,
-) (any, error) {
-	path := pathGoogleAdsSearch(s.apiVersion, customerID)
-	headers := map[string]string{}
-	if loginCustomerID != "" {
-		headers["login-customer-id"] = loginCustomerID
-	}
-	body := map[string]any{
-		"query": query,
-		"searchSettings": map[string]any{
-			"returnTotalResultsCount": true,
-		},
-	}
-	return s.proxy.requestJSON(ctx, userID, mcpTool, "POST", path, body, headers)
 }
 
 func (s *service) listAccessibleCustomers(ctx context.Context, userID, mcpTool string) (any, error) {

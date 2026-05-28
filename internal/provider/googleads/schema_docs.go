@@ -15,7 +15,7 @@ func listAdAccountsDescription() string {
 }
 
 func resolveCustomerDescription() string {
-	return googleAdsWorkflowHint() + " Matches account_name against direct accessible accounts and optionally client accounts under up to 5 manager (MCC) accounts."
+	return googleAdsWorkflowHint() + " Matches account_name against direct accessible accounts and optionally client accounts under up to 10 manager (MCC) accounts."
 }
 
 func listClientAccountsDescription() string {
@@ -23,11 +23,15 @@ func listClientAccountsDescription() string {
 }
 
 func searchKeywordsDescription() string {
-	return googleAdsWorkflowHint() + " Keyword-level performance from keyword_view. Requires Search campaigns. Use keyword_contains, campaign_ids, ad_group_ids, statuses, and date_range_start/end filters."
+	return googleAdsWorkflowHint() + " Keyword-level performance from keyword_view. Requires Search campaigns with keywords. Use keyword_contains, campaign_ids, ad_group_ids, statuses, and date_range_start/end filters. When results are empty, the response includes hint and channel_summary — common cause is a non-Search account (Demand Gen, Video, PMax only); try google_resolve_customer for a Search client or google_search_pmax_search_terms for PMax."
 }
 
 func searchSearchTermsDescription() string {
-	return googleAdsWorkflowHint() + " Search query report from search_term_view. Requires Search campaigns. Use search_term_contains, campaign_ids, ad_group_ids, and date_range_start/end filters."
+	return googleAdsWorkflowHint() + searchTermsToolSelectionHint() + " Search query report from search_term_view. Requires Search campaigns. Use search_term_contains, campaign_ids, ad_group_ids, and date_range_start/end filters. Empty results include hint and channel_summary; for PMax search terms use google_search_pmax_search_terms instead."
+}
+
+func searchPmaxSearchTermsDescription() string {
+	return googleAdsWorkflowHint() + " Performance Max search term report from campaign_search_term_view. Use search_term_contains, campaign_ids, and date_range_start/end filters. Empty results include hint and channel_summary; confirm the account has Performance Max campaigns."
 }
 
 func listConversionActionsDescription() string {
@@ -35,7 +39,15 @@ func listConversionActionsDescription() string {
 }
 
 func searchConversionPerformanceDescription() string {
-	return googleAdsWorkflowHint() + " Conversion metrics by campaign and conversion action. Defaults to last 30 days when no date range is provided. Optional conversion_action_ids (numeric ids or full resource names)."
+	return googleAdsWorkflowHint() + " Conversion metrics by campaign and conversion action. Defaults to last 30 days when no date range is provided. Optional conversion_action_ids (numeric ids or full resource names). Example: customer_id + login_customer_id for MCC clients; omit date_range to use last 30 days."
+}
+
+func listOfflineConversionUploadSummariesDescription() string {
+	return googleAdsWorkflowHint() + " Offline conversion upload status per conversion action (event counts, status, last upload time). Optional name_contains filter on conversion_action_name."
+}
+
+func searchTermsToolSelectionHint() string {
+	return " Search terms: use google_search_search_terms for Search campaigns; google_search_pmax_search_terms for Performance Max (campaign_search_term_view)."
 }
 
 func getResourceMetadataDescription() string {
@@ -46,6 +58,6 @@ func getResourceMetadataDescription() string {
 func searchGAQLDescription() string {
 	common := strings.Join(commonGAQLResources(), ", ")
 	return googleAdsWorkflowHint() + googleAdsHybridHint() +
-		" Runs a validated GAQL query when no curated tool fits. Use google_get_resource_metadata first. Common resources: " + common +
-		". Full allowlist in docs/google-ads-tools.md."
+		" Runs a validated GAQL query when no curated tool fits. Use google_get_resource_metadata first. Attributed fields (campaign.*, ad_group.*, etc.) are allowed on views when compatible; unknown fields fail local validation. Common resources: " + common +
+		". Full allowlist in docs/google-ads-tools.md. auto_paginate defaults true (up to 10 pages)."
 }

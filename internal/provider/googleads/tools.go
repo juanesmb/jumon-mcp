@@ -19,14 +19,18 @@ const (
 	toolGoogleSearchAds                  = "google_search_ads"
 	toolGoogleSearchKeywords             = "google_search_keywords"
 	toolGoogleSearchSearchTerms          = "google_search_search_terms"
+	toolGoogleSearchPmaxSearchTerms      = "google_search_pmax_search_terms"
 	toolGoogleListConversionActions      = "google_list_conversion_actions"
 	toolGoogleSearchConversionPerf       = "google_search_conversion_performance"
+	toolGoogleListOfflineConvUploads   = "google_list_offline_conversion_upload_summaries"
 	toolGoogleGetResourceMetadata        = "google_get_resource_metadata"
 	toolGoogleSearchGAQL                 = "google_search_gaql"
 )
 
 type Config struct {
-	APIVersion string
+	APIVersion            string
+	MaxAccessibleAccounts int
+	MaxManagerScan        int
 }
 
 func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client, config Config) error {
@@ -162,6 +166,22 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client, config
 			},
 		},
 		{
+			Name:               toolGoogleSearchPmaxSearchTerms,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Performance Max search term report (campaign_search_term_view) with optional date range.",
+			Description:        searchPmaxSearchTermsDescription(),
+			InputSchema:        searchPmaxSearchTermsSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseReportFilters(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.searchPmaxSearchTerms(ctx, userID, toolGoogleSearchPmaxSearchTerms, in)
+			},
+		},
+		{
 			Name:               toolGoogleListConversionActions,
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
@@ -191,6 +211,22 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client, config
 					return nil, err
 				}
 				return svc.searchConversionPerformance(ctx, userID, toolGoogleSearchConversionPerf, in)
+			},
+		},
+		{
+			Name:               toolGoogleListOfflineConvUploads,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Offline conversion upload health by conversion action.",
+			Description:        listOfflineConversionUploadSummariesDescription(),
+			InputSchema:        listOfflineConversionUploadSummariesSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseReportFilters(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.listOfflineConversionUploadSummaries(ctx, userID, toolGoogleListOfflineConvUploads, in)
 			},
 		},
 		{
