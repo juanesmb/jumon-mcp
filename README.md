@@ -22,7 +22,7 @@ Optional:
   MCP clients compare this to the connector URL OAuth metadata (`resource`). If you use a custom domain (e.g. `https://mcp.example.com`), set `PUBLIC_BASE_URL=https://mcp.example.com` on Cloud Run—even though the container still receives requests on `*.run.app`. If unset, the server uses `X-Forwarded-*` headers or `Host` (which may still be `*.run.app` and trigger “protected resource does not match” in Cursor).
 - `PORT` (default `8080`)
 - `MCP_DEBUG_AUTH` (`true` to enable verbose auth logs)
-- `GOOGLE_ADS_API_VERSION` (default `v22`)
+- `GOOGLE_ADS_API_VERSION` (default `v24`)
 - `USER_ID_HASH_SALT` — optional salt combined with hashed Clerk identifiers for correlated `user.hash` fields without logging raw JWT subjects.
 
 GCP / OpenTelemetry knobs (omit or disable when developing without Cloud exporters):

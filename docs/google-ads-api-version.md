@@ -6,7 +6,9 @@ Jumon pins the Google Ads API version via environment variable. All gateway prox
 
 | Variable | Default | Location |
 |----------|---------|----------|
-| `GOOGLE_ADS_API_VERSION` | `v22` | jumon-mcp `.env`, Cloud Run / deployment env |
+| `GOOGLE_ADS_API_VERSION` | `v24` | jumon-mcp `.env`, Cloud Run / deployment env |
+
+Current default **v24** was validated against [google-ads-smoke-tests.md](google-ads-smoke-tests.md) (May 2026).
 
 Set in:
 
@@ -19,7 +21,7 @@ When Google releases a new API version:
 
 1. Read [Google Ads API release notes](https://developers.google.com/google-ads/api/docs/release-notes) for breaking GAQL or field changes affecting Jumon queries.
 2. Bump `GOOGLE_ADS_API_VERSION` in deployment env and [`.env.example`](../.env.example).
-3. Update field doc links in [`internal/provider/googleads/schema_docs.go`](../internal/provider/googleads/schema_docs.go) (`fields/v22` → new version).
+3. Update field doc links in [`internal/provider/googleads/schema_docs.go`](../internal/provider/googleads/schema_docs.go) (`fields/v24` → new version).
 4. Run unit tests: `go test ./internal/provider/googleads/...`
 5. Run manual smoke tests: [google-ads-smoke-tests.md](google-ads-smoke-tests.md)
 6. Re-sync `gaql_resources.txt` from [official google-ads-mcp](https://github.com/googleads/google-ads-mcp/blob/main/ads_mcp/gaql_resources.txt) if Google added resources.

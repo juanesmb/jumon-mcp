@@ -117,8 +117,8 @@ func TestValidateGAQLSearchInputRejectsBadResource(t *testing.T) {
 }
 
 func TestPathGoogleAdsFieldsSearch(t *testing.T) {
-	got := pathGoogleAdsFieldsSearch("v22")
-	if got != "v22/googleAdsFields:search" {
+	got := pathGoogleAdsFieldsSearch("v24")
+	if got != "v24/googleAdsFields:search" {
 		t.Fatalf("path = %q", got)
 	}
 }

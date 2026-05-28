@@ -36,7 +36,7 @@ func TestGoogleSearchPaginated_autoPaginateMergesResults(t *testing.T) {
 			},
 		},
 	}
-	svc := &service{proxy: proxy, apiVersion: "v22"}
+	svc := &service{proxy: proxy, apiVersion: "v24"}
 
 	out, err := svc.googleSearchPaginated(
 		context.Background(), "user", "google_search_keywords", "123", "", "SELECT 1", true,

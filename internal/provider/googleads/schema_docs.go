@@ -7,7 +7,7 @@ func googleAdsWorkflowHint() string {
 }
 
 func googleAdsHybridHint() string {
-	return ` Prefer curated google_* tools for common reports. When no curated tool fits: google_get_resource_metadata then google_search_gaql. Never guess GAQL fields. References: GAQL grammar https://developers.google.com/google-ads/api/docs/query/grammar — fields https://developers.google.com/google-ads/api/fields/v22/overview — Query Builder https://developers.google.com/google-ads/api/docs/developer-toolkit/gaa-query-builder — conversions https://developers.google.com/google-ads/api/docs/conversions/overview`
+	return ` Prefer curated google_* tools for common reports. When no curated tool fits: google_get_resource_metadata then google_search_gaql. Never guess GAQL fields. References: GAQL grammar https://developers.google.com/google-ads/api/docs/query/grammar — fields https://developers.google.com/google-ads/api/fields/v24/overview — Query Builder https://developers.google.com/google-ads/api/docs/developer-toolkit/gaa-query-builder — conversions https://developers.google.com/google-ads/api/docs/conversions/overview`
 }
 
 func listAdAccountsDescription() string {

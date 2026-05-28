@@ -38,7 +38,7 @@ Never guess GAQL fields. Attributed fields (`campaign.*`, `ad_group.*`, etc.) ar
 References:
 
 - [GAQL grammar](https://developers.google.com/google-ads/api/docs/query/grammar)
-- [Fields overview (v22)](https://developers.google.com/google-ads/api/fields/v22/overview)
+- [Fields overview (v24)](https://developers.google.com/google-ads/api/fields/v24/overview)
 - [Query Builder](https://developers.google.com/google-ads/api/docs/developer-toolkit/gaa-query-builder)
 - [Conversions](https://developers.google.com/google-ads/api/docs/conversions/overview)
 

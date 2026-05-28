@@ -71,7 +71,7 @@ func Read() Config {
 	}
 	googleAPIVersion := strings.TrimSpace(os.Getenv("GOOGLE_ADS_API_VERSION"))
 	if googleAPIVersion == "" {
-		googleAPIVersion = "v22"
+		googleAPIVersion = "v24"
 	}
 
 	gcpProject := strings.TrimSpace(os.Getenv("GOOGLE_CLOUD_PROJECT"))

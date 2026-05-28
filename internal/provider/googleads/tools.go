@@ -35,7 +35,7 @@ type Config struct {
 
 func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client, config Config) error {
 	if config.APIVersion == "" {
-		config.APIVersion = "v22"
+		config.APIVersion = "v24"
 	}
 
 	svc := newGoogleService(gatewayClient, config)
