@@ -8,9 +8,13 @@ import (
 	"strings"
 
 	infrahttp "jumon-mcp/internal/infrastructure/http"
+	"jumon-mcp/internal/infrastructure/middleware"
 )
 
-const headerGatewaySecret = "x-gateway-secret"
+const (
+	headerGatewaySecret = "x-gateway-secret"
+	payloadKeyOrgID     = "orgId"
+)
 
 type Client struct {
 	httpClient     *infrahttp.Client
@@ -39,7 +43,11 @@ func (c *Client) GetConnection(ctx context.Context, provider, userID string) (*i
 
 func (c *Client) RefreshProvider(ctx context.Context, provider, userID string) (*infrahttp.Response, error) {
 	path := fmt.Sprintf("%s/api/internal/providers/%s/refresh", c.baseURL, provider)
-	return c.httpClient.Post(ctx, path, map[string]string{"userId": userID}, c.authHeaders())
+	payload := map[string]any{"userId": userID}
+	if orgID := middleware.OrgIDFromContext(ctx); orgID != "" {
+		payload[payloadKeyOrgID] = orgID
+	}
+	return c.httpClient.Post(ctx, path, payload, c.authHeaders())
 }
 
 func (c *Client) ProxyProvider(ctx context.Context, provider, mcpTool, userID, method, proxyPath string, query map[string]string, body any, headers map[string]string) (*infrahttp.Response, error) {
@@ -52,6 +60,9 @@ func (c *Client) ProxyProvider(ctx context.Context, provider, mcpTool, userID, m
 		"mcpTool": strings.TrimSpace(mcpTool),
 		"method":  method,
 		"path":    strings.TrimLeft(proxyPath, "/"),
+	}
+	if orgID := middleware.OrgIDFromContext(ctx); orgID != "" {
+		payload[payloadKeyOrgID] = orgID
 	}
 	if len(query) > 0 {
 		payload["query"] = query

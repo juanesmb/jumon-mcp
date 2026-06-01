@@ -11,6 +11,15 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// AuthClaims carries the verified Clerk JWT claims used across the request lifecycle.
+type AuthClaims struct {
+	// UserID is the Clerk subject (sub) claim.
+	UserID string
+	// OrgID is the active Clerk organization (org_id claim). Empty when the user
+	// is acting in their personal workspace.
+	OrgID string
+}
+
 type ClerkTokenVerifier struct {
 	jwksMu        sync.Mutex
 	jwks          *keyfunc.JWKS
@@ -35,11 +44,11 @@ func NewClerkTokenVerifier(jwksURL, issuer, audience, requiredScope string) (*Cl
 	}, nil
 }
 
-func (v *ClerkTokenVerifier) Verify(ctx context.Context, tokenString string) (string, error) {
+func (v *ClerkTokenVerifier) Verify(ctx context.Context, tokenString string) (AuthClaims, error) {
 	_ = ctx
 	jwks, err := v.getJWKS()
 	if err != nil {
-		return "", err
+		return AuthClaims{}, err
 	}
 
 	options := []jwt.ParserOption{
@@ -52,24 +61,26 @@ func (v *ClerkTokenVerifier) Verify(ctx context.Context, tokenString string) (st
 
 	token, err := jwt.Parse(tokenString, jwks.Keyfunc, options...)
 	if err != nil {
-		return "", fmt.Errorf("token validation failed: %w", err)
+		return AuthClaims{}, fmt.Errorf("token validation failed: %w", err)
 	}
 	if !token.Valid {
-		return "", fmt.Errorf("token is invalid")
+		return AuthClaims{}, fmt.Errorf("token is invalid")
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return "", fmt.Errorf("token claims are not map claims")
+		return AuthClaims{}, fmt.Errorf("token claims are not map claims")
 	}
 	userID, _ := claims["sub"].(string)
 	if strings.TrimSpace(userID) == "" {
-		return "", fmt.Errorf("token missing subject")
+		return AuthClaims{}, fmt.Errorf("token missing subject")
 	}
 	if v.requiredScope != "" && !hasScope(claims, v.requiredScope) {
-		return "", fmt.Errorf("token missing required scope %q", v.requiredScope)
+		return AuthClaims{}, fmt.Errorf("token missing required scope %q", v.requiredScope)
 	}
-	return userID, nil
+
+	orgID, _ := claims["org_id"].(string)
+	return AuthClaims{UserID: userID, OrgID: orgID}, nil
 }
 
 func (v *ClerkTokenVerifier) getJWKS() (*keyfunc.JWKS, error) {

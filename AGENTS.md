@@ -55,6 +55,7 @@ See [docs/gateway-contract.md](docs/gateway-contract.md). OAuth + token decrypti
 | Analytics work | `docs/linkedin-analytics-roadmap.md`, `analytics_pagination.go` |
 | Gateway calls | `internal/infrastructure/gateway/client.go`, provider `proxy.go` |
 | Tool registration | `internal/app/wire.go`, `internal/provider/registry/registry.go` |
+| Org context / JWT | `internal/infrastructure/security/clerk_token_verifier.go` (AuthClaims), `internal/infrastructure/middleware/auth_middleware.go` (OrgIDFromContext) |
 
 Reference templates: LinkedIn `linkedin_get_campaign_groups`; Google curated `google_search_keywords`; Google P2 `google_search_gaql` + `google_get_resource_metadata`.
 

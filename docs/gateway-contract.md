@@ -47,9 +47,30 @@ Providers: `linkedin`, `google`, `reddit`.
 }
 ```
 
+## Org context propagation (per-org MCP URL)
+
+Users configure per-org MCP server URLs in their AI agent:
+
+```
+https://mcp.jumonintelligence.com/mcp?org=org_aaa   # Agency A
+https://mcp.jumonintelligence.com/mcp?org=org_bbb   # Agency B
+```
+
+Flow:
+1. `RequireBearerAuth` verifies the JWT then reads `r.URL.Query().Get("org")`.
+2. URL `?org=` takes precedence over the JWT `org_id` claim (JWT claim is unreliable for AI agent OAuth flows).
+3. `OrgIDFromContext(ctx)` returns the resolved org ID.
+4. `gateway.Client.ProxyProvider` / `RefreshProvider` include `"orgId"` in the JSON payload.
+5. `mcp-ads-manager` proxy route validates `userId` is a member of `orgId` (via `org_memberships` table).
+6. Connection lookup uses `(userId, provider, orgId)` — org-scoped OAuth connections.
+
+OAuth connections are now keyed by `(clerk_user_id, provider, clerk_org_id)` allowing different ad accounts per org.
+
 ## Implementation
 
 - Client: `internal/infrastructure/gateway/client.go`
+- Auth claims: `internal/infrastructure/security/clerk_token_verifier.go` — `AuthClaims{UserID, OrgID}`
+- Middleware: `internal/infrastructure/middleware/auth_middleware.go` — `OrgIDFromContext`
 - `IsProviderUsable` / `RefreshSucceeded` / `IsTokenRefreshFailed`
 - Registry connection check: `internal/provider/registry/connections.go` uses `usable`
 - Provider wrappers: each provider's `proxy.go` maps auth failures to reconnect errors
