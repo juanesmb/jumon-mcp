@@ -38,6 +38,9 @@ func (c *Client) ConnectURLHint() string {
 
 func (c *Client) GetConnection(ctx context.Context, provider, userID string) (*infrahttp.Response, error) {
 	path := fmt.Sprintf("%s/api/internal/connections/%s/current?userId=%s", c.baseURL, provider, url.QueryEscape(userID))
+	if orgID := middleware.OrgIDFromContext(ctx); orgID != "" {
+		path += "&orgId=" + url.QueryEscape(orgID)
+	}
 	return c.httpClient.Get(ctx, path, c.authHeaders())
 }
 

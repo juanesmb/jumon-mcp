@@ -18,7 +18,7 @@ Env: `GATEWAY_BASE_URL` or `JUMON_GATEWAY_BASE_URL` — base URL of the web app 
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/api/internal/connections/{provider}/current?userId=` | Connection health (`connected`, `usable`, `health`) |
+| GET | `/api/internal/connections/{provider}/current?userId=&orgId=` | Connection health (`connected`, `usable`, `health`). Pass `orgId` for org-scoped connections. |
 | POST | `/api/internal/providers/{provider}/proxy` | Proxy provider API call (proactive + reactive refresh) |
 | POST | `/api/internal/providers/{provider}/refresh` | Refresh OAuth token |
 
@@ -60,8 +60,8 @@ Flow:
 1. `RequireBearerAuth` verifies the JWT then reads `r.URL.Query().Get("org")`.
 2. URL `?org=` takes precedence over the JWT `org_id` claim (JWT claim is unreliable for AI agent OAuth flows).
 3. `OrgIDFromContext(ctx)` returns the resolved org ID.
-4. `gateway.Client.ProxyProvider` / `RefreshProvider` include `"orgId"` in the JSON payload.
-5. `mcp-ads-manager` proxy route validates `userId` is a member of `orgId` (via `org_memberships` table).
+4. `gateway.Client.GetConnection` appends `orgId` to the query string; `ProxyProvider` / `RefreshProvider` include `"orgId"` in the JSON payload.
+5. `mcp-ads-manager` internal routes validate `userId` is a member of `orgId` (via `org_memberships` table).
 6. Connection lookup uses `(userId, provider, orgId)` — org-scoped OAuth connections.
 
 OAuth connections are now keyed by `(clerk_user_id, provider, clerk_org_id)` allowing different ad accounts per org.
