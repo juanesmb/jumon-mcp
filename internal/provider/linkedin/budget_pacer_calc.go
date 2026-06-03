@@ -149,3 +149,27 @@ func spendChangePercent(current, prior float64) *float64 {
 	pct := ((current - prior) / prior) * 100
 	return floatPtr(round2(pct))
 }
+
+// spendChangePercentDailyAvg compares average daily spend across periods of different lengths.
+func spendChangePercentDailyAvg(current, prior float64, currentDays, priorDays int) *float64 {
+	if prior <= 0 || currentDays <= 0 || priorDays <= 0 {
+		return nil
+	}
+	priorDaily := prior / float64(priorDays)
+	if priorDaily <= 0 {
+		return nil
+	}
+	currentDaily := current / float64(currentDays)
+	pct := ((currentDaily - priorDaily) / priorDaily) * 100
+	return floatPtr(round2(pct))
+}
+
+func pacerSpendCompareFields(spend, prior float64, compare *pacerCompareContext) (spendPrior, changePct, changeDaily *float64) {
+	p := round2(prior)
+	spendPrior = &p
+	changePct = spendChangePercent(spend, prior)
+	if compare != nil && compare.compareDays > 0 {
+		changeDaily = spendChangePercentDailyAvg(spend, prior, compare.periodDays, compare.compareDays)
+	}
+	return spendPrior, changePct, changeDaily
+}

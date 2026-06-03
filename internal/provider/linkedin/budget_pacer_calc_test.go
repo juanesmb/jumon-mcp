@@ -30,6 +30,22 @@ func TestComputePacing_dailyBudgetMidPeriod(t *testing.T) {
 	}
 }
 
+func TestSpendChangePercentDailyAvg_normalizesPeriodLength(t *testing.T) {
+	t.Parallel()
+
+	// 90 over 3 days vs 210 over 7 days → 30/day each → 0% change
+	got := spendChangePercentDailyAvg(90, 210, 3, 7)
+	if got == nil || *got != 0 {
+		t.Fatalf("daily avg change = %v, want 0", got)
+	}
+
+	// 300 over 3 days vs 200 over 7 days → 100/day vs ~28.57/day → large positive
+	got = spendChangePercentDailyAvg(300, 200, 3, 7)
+	if got == nil || *got <= 0 {
+		t.Fatalf("daily avg change = %v, want positive", got)
+	}
+}
+
 func TestComputePacing_lifetimeProration(t *testing.T) {
 	t.Parallel()
 

@@ -58,6 +58,7 @@ func (s *service) getBudgetPacerReport(
 	}
 
 	var spendPrior map[string]float64
+	var compareCtx *pacerCompareContext
 	if strings.TrimSpace(in.ComparePeriodStart) != "" {
 		compareEnd := in.ComparePeriodEnd
 		if compareEnd == "" {
@@ -72,6 +73,10 @@ func (s *service) getBudgetPacerReport(
 		if err != nil {
 			return BudgetPacerReport{}, err
 		}
+		compareCtx, err = newPacerCompareContext(periodStart, periodEnd, report.ComparePeriod.Start, compareEnd)
+		if err != nil {
+			return BudgetPacerReport{}, err
+		}
 	}
 
 	groupNames, groupErr := s.fetchCampaignGroupNames(ctx, userID, mcpTool, in.AccountID, snapshots)
@@ -81,11 +86,22 @@ func (s *service) getBudgetPacerReport(
 		)
 	}
 
-	report.Rows = buildPacerRows(snapshots, spendCurrent, spendPrior, periodStart, periodEnd, in.PacingThresholds)
+	report.Rows = buildPacerRows(snapshots, spendCurrent, spendPrior, periodStart, periodEnd, in.PacingThresholds, compareCtx)
 	report.ByCampaignGroup = buildGroupRollups(report.Rows, groupNames, in.PacingThresholds)
-	report.Summary = buildAccountSummary(report.Rows, in.PacingThresholds)
+	report.Summary = buildAccountSummary(report.Rows, in.PacingThresholds, compareCtx)
 
 	return report, nil
+}
+
+func newPacerCompareContext(periodStart, periodEnd time.Time, compareStartRaw, compareEndRaw string) (*pacerCompareContext, error) {
+	compareStart, compareEnd, err := resolvePeriodDates(compareStartRaw, compareEndRaw)
+	if err != nil {
+		return nil, err
+	}
+	return &pacerCompareContext{
+		periodDays:  inclusiveUTCDays(periodStart, periodEnd),
+		compareDays: inclusiveUTCDays(compareStart, compareEnd),
+	}, nil
 }
 
 func (s *service) fetchCampaignSnapshotsForPacer(
@@ -194,6 +210,7 @@ func buildPacerRows(
 	spendCurrent, spendPrior map[string]float64,
 	periodStart, periodEnd time.Time,
 	thresholds PacingThresholds,
+	compare *pacerCompareContext,
 ) []PacerRow {
 	rows := make([]PacerRow, 0, len(snapshots))
 	for _, snap := range snapshots {
@@ -225,9 +242,8 @@ func buildPacerRows(
 		}
 		if spendPrior != nil {
 			prior := spendPrior[snap.ID]
-			p := round2(prior)
-			row.SpendPrior = &p
-			row.SpendChangePercent = spendChangePercent(spend, prior)
+			row.SpendPrior, row.SpendChangePercent, row.SpendChangePercentDailyAvg =
+				pacerSpendCompareFields(spend, prior, compare)
 		}
 		rows = append(rows, row)
 	}
@@ -293,13 +309,14 @@ func buildGroupRollups(
 	return rollups
 }
 
-func buildAccountSummary(rows []PacerRow, thresholds PacingThresholds) *AccountPacerSummary {
+func buildAccountSummary(rows []PacerRow, thresholds PacingThresholds, compare *pacerCompareContext) *AccountPacerSummary {
 	if len(rows) == 0 {
 		return nil
 	}
 	currency := rows[0].CurrencyCode
-	var totalSpend, totalExpected float64
+	var totalSpend, totalExpected, totalPrior float64
 	hasExpected := false
+	hasPrior := false
 
 	for _, row := range rows {
 		if row.CurrencyCode != "" && row.CurrencyCode != currency {
@@ -309,6 +326,10 @@ func buildAccountSummary(rows []PacerRow, thresholds PacingThresholds) *AccountP
 		if row.ExpectedSpendToDate != nil {
 			totalExpected += *row.ExpectedSpendToDate
 			hasExpected = true
+		}
+		if row.SpendPrior != nil {
+			totalPrior += *row.SpendPrior
+			hasPrior = true
 		}
 	}
 
@@ -322,6 +343,10 @@ func buildAccountSummary(rows []PacerRow, thresholds PacingThresholds) *AccountP
 		pct := (totalSpend / totalExpected) * 100
 		summary.PacingPercent = floatPtr(round2(pct))
 		summary.PacingStatus = classifyPacing(pct/100, thresholds)
+	}
+	if hasPrior {
+		summary.SpendPrior, summary.SpendChangePercent, summary.SpendChangePercentDailyAvg =
+			pacerSpendCompareFields(totalSpend, totalPrior, compare)
 	}
 	return summary
 }

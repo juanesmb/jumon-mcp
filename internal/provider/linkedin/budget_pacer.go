@@ -34,32 +34,42 @@ type PacerReportMetadata struct {
 	Warnings          []string `json:"warnings"`
 }
 
+// pacerCompareContext holds inclusive UTC day counts for fair spend deltas.
+type pacerCompareContext struct {
+	periodDays  int
+	compareDays int
+}
+
 // AccountPacerSummary rolls up account-level pacing when a single currency applies.
 type AccountPacerSummary struct {
-	SpendToDate         float64  `json:"spendToDate"`
-	ExpectedSpendToDate *float64 `json:"expectedSpendToDate,omitempty"`
-	PacingPercent       *float64 `json:"pacingPercent,omitempty"`
-	PacingStatus        string   `json:"pacingStatus"`
-	CurrencyCode        string   `json:"currencyCode,omitempty"`
+	SpendToDate                float64  `json:"spendToDate"`
+	ExpectedSpendToDate        *float64 `json:"expectedSpendToDate,omitempty"`
+	PacingPercent              *float64 `json:"pacingPercent,omitempty"`
+	PacingStatus               string   `json:"pacingStatus"`
+	CurrencyCode               string   `json:"currencyCode,omitempty"`
+	SpendPrior                 *float64 `json:"spendPrior,omitempty"`
+	SpendChangePercent         *float64 `json:"spendChangePercent,omitempty"`
+	SpendChangePercentDailyAvg *float64 `json:"spendChangePercentDailyAvg,omitempty"`
 }
 
 // PacerRow is one campaign pacing line.
 type PacerRow struct {
-	CampaignID           string   `json:"campaignId"`
-	CampaignURN          string   `json:"campaignUrn"`
-	Name                 string   `json:"name"`
-	Status               string   `json:"status"`
-	CampaignGroupURN     string   `json:"campaignGroupUrn,omitempty"`
-	BudgetType           string   `json:"budgetType"`
-	BudgetAmount         float64  `json:"budgetAmount,omitempty"`
-	CurrencyCode         string   `json:"currencyCode,omitempty"`
-	SpendToDate          float64  `json:"spendToDate"`
-	ExpectedSpendToDate  *float64 `json:"expectedSpendToDate,omitempty"`
-	PacingPercent        *float64 `json:"pacingPercent,omitempty"`
-	PacingStatus         string   `json:"pacingStatus"`
-	ProjectedPeriodSpend *float64 `json:"projectedPeriodSpend,omitempty"`
-	SpendPrior           *float64 `json:"spendPrior,omitempty"`
-	SpendChangePercent   *float64 `json:"spendChangePercent,omitempty"`
+	CampaignID                 string   `json:"campaignId"`
+	CampaignURN                string   `json:"campaignUrn"`
+	Name                       string   `json:"name"`
+	Status                     string   `json:"status"`
+	CampaignGroupURN           string   `json:"campaignGroupUrn,omitempty"`
+	BudgetType                 string   `json:"budgetType"`
+	BudgetAmount               float64  `json:"budgetAmount,omitempty"`
+	CurrencyCode               string   `json:"currencyCode,omitempty"`
+	SpendToDate                float64  `json:"spendToDate"`
+	ExpectedSpendToDate        *float64 `json:"expectedSpendToDate,omitempty"`
+	PacingPercent              *float64 `json:"pacingPercent,omitempty"`
+	PacingStatus               string   `json:"pacingStatus"`
+	ProjectedPeriodSpend       *float64 `json:"projectedPeriodSpend,omitempty"`
+	SpendPrior                 *float64 `json:"spendPrior,omitempty"`
+	SpendChangePercent         *float64 `json:"spendChangePercent,omitempty"`
+	SpendChangePercentDailyAvg *float64 `json:"spendChangePercentDailyAvg,omitempty"`
 }
 
 // CampaignGroupPacerRollup aggregates rows by campaign group.
@@ -85,14 +95,20 @@ type BudgetPacerReport struct {
 	ByCampaignGroup []CampaignGroupPacerRollup `json:"byCampaignGroup"`
 }
 
+const budgetPacerAcceptedParams = "account_id, date_range_start, date_range_end, status_filter, campaign_group_ids, campaign_ids, include_test_campaigns, auto_paginate, pacing_thresholds, compare_date_range_start, compare_date_range_end"
+
 func parseBudgetPacerInput(params map[string]any) (BudgetPacerInput, error) {
-	accountID := strings.TrimSpace(toString(params["account_id"]))
-	periodStart := strings.TrimSpace(toString(params["date_range_start"]))
+	accountID := coalesceTrimmedParam(params, "account_id")
+	periodStart := coalesceTrimmedParam(params, "date_range_start", "start_date")
+	periodEnd := coalesceTrimmedParam(params, "date_range_end", "end_date")
+	compareStart := coalesceTrimmedParam(params, "compare_date_range_start", "compare_start_date", "compare_start")
+	compareEnd := coalesceTrimmedParam(params, "compare_date_range_end", "compare_end_date", "compare_end")
+
 	if accountID == "" {
-		return BudgetPacerInput{}, fmt.Errorf("account_id is required")
+		return BudgetPacerInput{}, fmt.Errorf("account_id is required; accepted parameters: %s", budgetPacerAcceptedParams)
 	}
 	if periodStart == "" {
-		return BudgetPacerInput{}, fmt.Errorf("date_range_start is required")
+		return BudgetPacerInput{}, budgetPacerMissingDateRangeStartError(params)
 	}
 
 	statusFilter := toStringSlice(params["status_filter"])
@@ -103,17 +119,46 @@ func parseBudgetPacerInput(params map[string]any) (BudgetPacerInput, error) {
 	in := BudgetPacerInput{
 		AccountID:            accountID,
 		PeriodStart:          periodStart,
-		PeriodEnd:            strings.TrimSpace(toString(params["date_range_end"])),
+		PeriodEnd:            periodEnd,
 		StatusFilter:         statusFilter,
 		CampaignGroupIDs:     toStringSlice(params["campaign_group_ids"]),
 		CampaignIDs:          toStringSlice(params["campaign_ids"]),
 		IncludeTestCampaigns: parseOptionalBoolParam(params["include_test_campaigns"], false),
 		AutoPaginate:         parseOptionalBoolParam(params["auto_paginate"], true),
-		ComparePeriodStart:   strings.TrimSpace(toString(params["compare_date_range_start"])),
-		ComparePeriodEnd:     strings.TrimSpace(toString(params["compare_date_range_end"])),
+		ComparePeriodStart:   compareStart,
+		ComparePeriodEnd:     compareEnd,
 		PacingThresholds:     parsePacingThresholds(params["pacing_thresholds"]),
 	}
 	return in, nil
+}
+
+func hasParamKey(params map[string]any, key string) bool {
+	_, ok := params[key]
+	return ok
+}
+
+func coalesceTrimmedParam(params map[string]any, keys ...string) string {
+	for _, key := range keys {
+		if v := strings.TrimSpace(toString(params[key])); v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+func budgetPacerMissingDateRangeStartError(params map[string]any) error {
+	hint := ""
+	switch {
+	case hasParamKey(params, "date_start"):
+		hint = " (unknown key date_start — use date_range_start or start_date)"
+	case hasParamKey(params, "start_date") && coalesceTrimmedParam(params, "start_date") == "":
+		hint = " (start_date is empty — set date_range_start or start_date)"
+	}
+	return fmt.Errorf(
+		"date_range_start is required (YYYY-MM-DD)%s; accepted parameters: %s",
+		hint,
+		budgetPacerAcceptedParams,
+	)
 }
 
 func parsePacingThresholds(raw any) PacingThresholds {
@@ -145,7 +190,7 @@ func linkedInBudgetPacerToolDescription() string {
 		"Combines campaign budget config (linkedin_get_campaigns data) with period spend (adAnalytics). " +
 		"Prefer this tool for pacing questions instead of manually joining linkedin_get_campaigns and linkedin_get_ad_analytics. " +
 		"Use linkedin_get_ad_analytics directly for custom metrics, demographics, or conversion pivots. " +
-		"Optional compare_date_range_* adds prior-period spend and spendChangePercent per row. " +
+		"Optional compare_date_range_* adds spendPrior, spendChangePercent, and spendChangePercentDailyAvg (fair cross-period WoW) per row and on summary. " +
 		"Pacing is computed in UTC calendar days; projectedPeriodSpend uses linear extrapolation (not LinkedIn delivery pacing)."
 }
 
@@ -198,7 +243,7 @@ func budgetPacerReportSchema() map[string]any {
 			},
 			"compare_date_range_start": map[string]any{
 				"type":        "string",
-				"description": "Optional prior period start for spendPrior and spendChangePercent.",
+				"description": "Optional prior period start for spendPrior, spendChangePercent, and spendChangePercentDailyAvg on rows and summary.",
 			},
 			"compare_date_range_end": map[string]any{
 				"type":        "string",

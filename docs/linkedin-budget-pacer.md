@@ -29,11 +29,22 @@ Default thresholds: **over** ≥ 110%, **under** ≤ 90% of expected (configurab
 
 ## Optional compare period
 
-Set `compare_date_range_start` / `compare_date_range_end` for `spendPrior` and `spendChangePercent` per row.
+Set `compare_date_range_start` / `compare_date_range_end` for prior-period spend and WoW-style deltas.
+
+| Field | Meaning |
+|-------|---------|
+| `spendPrior` | Total spend in the compare period |
+| `spendChangePercent` | Raw period-over-period % change (unfair when periods differ in length) |
+| `spendChangePercentDailyAvg` | % change using average daily spend (fair for 3d vs 7d, etc.) |
+
+Account `summary` includes the same compare fields when a single currency applies.
+
+**Parameter names:** use `date_range_start` / `date_range_end` (not `start_date` / `end_date`). Aliases `start_date`, `end_date`, and `compare_start_date` are accepted for convenience. Validation errors list accepted parameter names.
 
 ## Limitations
 
 - Campaign list capped at **20 pages** of auto-pagination → `metadata.truncated` + warning; narrow with `campaign_ids` or `campaign_group_ids`
+- Only campaigns returned by LinkedIn for the authenticated user on that ad account (default `status_filter: ACTIVE`); client/managed accounts outside OAuth scope will not appear
 - Account `summary` is omitted when campaigns use mixed currencies (per-row and group rollups still returned)
 - Paused campaigns are included when matched by `status_filter`; pacing may be `unknown` but spend is shown
 
