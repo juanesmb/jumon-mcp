@@ -15,9 +15,6 @@ import (
 type AuthClaims struct {
 	// UserID is the Clerk subject (sub) claim.
 	UserID string
-	// OrgID is the active Clerk organization (org_id claim). Empty when the user
-	// is acting in their personal workspace.
-	OrgID string
 }
 
 type ClerkTokenVerifier struct {
@@ -79,8 +76,7 @@ func (v *ClerkTokenVerifier) Verify(ctx context.Context, tokenString string) (Au
 		return AuthClaims{}, fmt.Errorf("token missing required scope %q", v.requiredScope)
 	}
 
-	orgID, _ := claims["org_id"].(string)
-	return AuthClaims{UserID: userID, OrgID: orgID}, nil
+	return AuthClaims{UserID: userID}, nil
 }
 
 func (v *ClerkTokenVerifier) getJWKS() (*keyfunc.JWKS, error) {

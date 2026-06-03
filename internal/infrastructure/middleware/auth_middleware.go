@@ -51,13 +51,7 @@ func RequireBearerAuth(verifier TokenVerifier, resourceMetadataURL, requiredScop
 			return
 		}
 
-		// Resolve org ID: URL ?org= param takes precedence over the JWT org_id claim.
-		// This allows per-org MCP URLs (mcp.jumon.ai/mcp?org=org_xxx) to override
-		// the JWT claim, which may be absent when using OAuth-based AI agent auth.
 		orgID := strings.TrimSpace(r.URL.Query().Get("org"))
-		if orgID == "" {
-			orgID = claims.OrgID
-		}
 
 		ctx := context.WithValue(r.Context(), authContextKey{}, claims)
 		ctx = context.WithValue(ctx, orgIDContextKey{}, orgID)
@@ -75,20 +69,10 @@ func UserIDFromContext(ctx context.Context) (string, bool) {
 	return claims.UserID, true
 }
 
-// OrgIDFromContext returns the resolved organization ID.
-// The ?org= URL query parameter takes precedence over the JWT org_id claim,
-// enabling per-org MCP URLs (mcp.jumon.ai/mcp?org=org_xxx) for context switching.
-// Returns "" when the user is acting in personal workspace.
+// OrgIDFromContext returns the MCP URL ?org= value (empty = personal workspace).
 func OrgIDFromContext(ctx context.Context) string {
-	if orgID, ok := ctx.Value(orgIDContextKey{}).(string); ok {
-		return orgID
-	}
-	// context key absent: caller built the context directly (e.g. unit tests) without RequireBearerAuth.
-	claims, ok := ctx.Value(authContextKey{}).(security.AuthClaims)
-	if !ok {
-		return ""
-	}
-	return claims.OrgID
+	orgID, _ := ctx.Value(orgIDContextKey{}).(string)
+	return orgID
 }
 
 func writeUnauthorized(w http.ResponseWriter, resourceMetadataURL, requiredScope, detail string) {

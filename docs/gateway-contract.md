@@ -57,19 +57,18 @@ https://mcp.jumonintelligence.com/mcp?org=org_bbb   # Agency B
 ```
 
 Flow:
-1. `RequireBearerAuth` verifies the JWT then reads `r.URL.Query().Get("org")`.
-2. URL `?org=` takes precedence over the JWT `org_id` claim (JWT claim is unreliable for AI agent OAuth flows).
-3. `OrgIDFromContext(ctx)` returns the resolved org ID.
-4. `gateway.Client.GetConnection` appends `orgId` to the query string; `ProxyProvider` / `RefreshProvider` include `"orgId"` in the JSON payload.
-5. `mcp-ads-manager` internal routes validate `userId` is a member of `orgId` (via `org_memberships` table).
-6. Connection lookup uses `(userId, provider, orgId)` — org-scoped OAuth connections.
+1. `RequireBearerAuth` verifies the JWT then reads `r.URL.Query().Get("org")` only (JWT `org_id` is ignored).
+2. `OrgIDFromContext(ctx)` returns that org ID, or `""` for personal workspace.
+3. `gateway.Client.GetConnection` appends `orgId` to the query string; `ProxyProvider` / `RefreshProvider` include `"orgId"` in the JSON payload.
+4. `mcp-ads-manager` internal routes validate `userId` is a member of `orgId` (via `org_memberships` table).
+5. Connection lookup uses `(userId, provider, orgId)` — org-scoped OAuth connections.
 
 OAuth connections are now keyed by `(clerk_user_id, provider, clerk_org_id)` allowing different ad accounts per org.
 
 ## Implementation
 
 - Client: `internal/infrastructure/gateway/client.go`
-- Auth claims: `internal/infrastructure/security/clerk_token_verifier.go` — `AuthClaims{UserID, OrgID}`
+- Auth claims: `internal/infrastructure/security/clerk_token_verifier.go` — `AuthClaims{UserID}`
 - Middleware: `internal/infrastructure/middleware/auth_middleware.go` — `OrgIDFromContext`
 - `IsProviderUsable` / `RefreshSucceeded` / `IsTokenRefreshFailed`
 - Registry connection check: `internal/provider/registry/connections.go` uses `usable`

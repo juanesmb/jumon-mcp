@@ -29,6 +29,7 @@ Workflow: explore → load schemas → execute. See `internal/app/instructions/s
 ## Key invariants
 
 - Clerk JWT on every MCP request; user ID extracted from token context.
+- **Org workspace** comes only from the MCP URL `?org=` query param (JWT `org_id` is ignored).
 - **No token storage in Go.** All provider API calls go through the gateway in mcp-ads-manager.
 - MCP tool gating uses gateway **`usable`**, not `connected` alone (`IsProviderUsable`).
 - Gateway proxy refreshes tokens proactively and on 401; jumon-mcp `ProxyProviderOrRefresh` retries only when refresh returns `refreshed: true`.
@@ -55,7 +56,7 @@ See [docs/gateway-contract.md](docs/gateway-contract.md). OAuth + token decrypti
 | Analytics work | `docs/linkedin-analytics-roadmap.md`, `analytics_pagination.go` |
 | Gateway calls | `internal/infrastructure/gateway/client.go`, provider `proxy.go` |
 | Tool registration | `internal/app/wire.go`, `internal/provider/registry/registry.go` |
-| Org context / JWT | `internal/infrastructure/security/clerk_token_verifier.go` (AuthClaims), `internal/infrastructure/middleware/auth_middleware.go` (OrgIDFromContext) |
+| Org context (URL only) | `internal/infrastructure/middleware/auth_middleware.go` (OrgIDFromContext), `internal/infrastructure/security/clerk_token_verifier.go` (user id) |
 
 Reference templates: LinkedIn `linkedin_get_campaign_groups`; Google curated `google_search_keywords`; Google P2 `google_search_gaql` + `google_get_resource_metadata`.
 
