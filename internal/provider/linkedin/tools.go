@@ -11,15 +11,16 @@ import (
 const platformName = "linkedin"
 
 const (
-	toolLinkedInListAdAccounts    = "linkedin_list_ad_accounts"
-	toolLinkedInGetCampaignGroups = "linkedin_get_campaign_groups"
-	toolLinkedInGetCampaigns      = "linkedin_get_campaigns"
-	toolLinkedInGetAdAnalytics    = "linkedin_get_ad_analytics"
-	toolLinkedInSearchCreatives   = "linkedin_search_creatives"
-	toolLinkedInListLeadForms     = "linkedin_list_lead_forms"
-	toolLinkedInGetCampaign       = "linkedin_get_campaign"
-	toolLinkedInGetCreative       = "linkedin_get_creative"
-	toolLinkedInListConversions   = "linkedin_list_conversions"
+	toolLinkedInListAdAccounts       = "linkedin_list_ad_accounts"
+	toolLinkedInGetCampaignGroups    = "linkedin_get_campaign_groups"
+	toolLinkedInGetCampaigns         = "linkedin_get_campaigns"
+	toolLinkedInGetAdAnalytics       = "linkedin_get_ad_analytics"
+	toolLinkedInSearchCreatives      = "linkedin_search_creatives"
+	toolLinkedInListLeadForms        = "linkedin_list_lead_forms"
+	toolLinkedInGetCampaign          = "linkedin_get_campaign"
+	toolLinkedInGetCreative          = "linkedin_get_creative"
+	toolLinkedInListConversions      = "linkedin_list_conversions"
+	toolLinkedInGetBudgetPacerReport = "linkedin_get_budget_pacer_report"
 )
 
 func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error {
@@ -169,6 +170,22 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error 
 					return nil, err
 				}
 				return svc.listConversions(ctx, userID, toolLinkedInListConversions, in)
+			},
+		},
+		{
+			Name:               toolLinkedInGetBudgetPacerReport,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Budget pacing report for LinkedIn campaigns in one ad account.",
+			Description:        linkedInBudgetPacerToolDescription(),
+			InputSchema:        budgetPacerReportSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseBudgetPacerInput(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.getBudgetPacerReport(ctx, userID, toolLinkedInGetBudgetPacerReport, in)
 			},
 		},
 	}

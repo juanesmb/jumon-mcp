@@ -16,6 +16,7 @@ Roadmap for expanding Jumon’s LinkedIn connector so AI agents can build comple
 | `linkedin_get_campaign_groups` | `adAccounts/{id}/adCampaignGroups` | Campaign group / funnel hierarchy (auto-pagination) |
 | `linkedin_get_ad_analytics` | `adAnalytics` (`q=analytics` or `q=statistics`) | Primary performance metrics |
 | `linkedin_search_creatives` | `adAccounts/{id}/creatives` | Creative metadata + feedUrl/previewUrl enrichment |
+| `linkedin_get_budget_pacer_report` | `adCampaigns` + `adAnalytics` (composite) | Budget pacing: spend vs expected, group rollups — see [linkedin-budget-pacer.md](linkedin-budget-pacer.md) |
 
 **Recent improvements**
 
@@ -23,6 +24,7 @@ Roadmap for expanding Jumon’s LinkedIn connector so AI agents can build comple
 - Analytics rows include `pivotValues` (campaign/creative IDs)
 - Delivery metrics: `approximateMemberReach`, auto-requested `impressions`, derived `averageFrequency`
 - Schema metric catalog + report-oriented `fields` examples for agent discoverability
+- [x] **Budget pacer** — `linkedin_get_budget_pacer_report` (read-only composite; write tools deferred)
 
 **Design principle:** Agents request metrics via the `fields` parameter (any valid LinkedIn field name, max 20 per request). The connector does not return “all metrics” in one call; schemas document what to ask for.
 

@@ -8,7 +8,7 @@ alwaysApply: false
 
 ## Tool naming
 
-All tools prefixed `linkedin_`. Register in `tools.go`, implement in `service.go`.
+All tools prefixed `linkedin_`. Register in `tools.go`, implement in `service.go` or dedicated `*_orchestrator.go` for composite reads.
 
 ## Gateway proxy
 
@@ -16,9 +16,19 @@ Use `proxy.go` / `linkedinGateway.requestJSON` — never call LinkedIn directly.
 
 ## Schemas and agent docs
 
-- Input JSON schemas: functions in `tools.go` (e.g. `getCampaignsSchema()`).
+- Input JSON schemas: functions in `tools.go` or `budget_pacer.go` (e.g. `getCampaignsSchema()`).
 - Agent-facing metric/pivot catalog: `schema_docs.go`.
+- Budget pacer playbook: [docs/linkedin-budget-pacer.md](../../docs/linkedin-budget-pacer.md).
 - Keep schemas aligned with LinkedIn Ads Reporting API docs.
+
+## Budget pacer (composite read)
+
+| File | Role |
+|------|------|
+| `campaign_snapshot.go` | Parse campaign rows; shared with future writes |
+| `budget_pacer_calc.go` | Pure pacing math (no HTTP) |
+| `budget_pacer_orchestrator.go` | Fetch campaigns + analytics, join, rollups |
+| `budget_pacer.go` | Types, input parser, tool schema/description |
 
 ## Pagination
 
@@ -26,7 +36,7 @@ Reuse patterns from `pagination.go` and `analytics_pagination.go`. Support `auto
 
 ## Tests
 
-Add `*_test.go` for input parsing, pagination edge cases, and schema helpers. Run: `go test ./internal/provider/linkedin/...`
+Add `*_test.go` for input parsing, pagination edge cases, pacing math, and schema helpers. Run: `go test ./internal/provider/linkedin/...`
 
 ## Analytics roadmap
 

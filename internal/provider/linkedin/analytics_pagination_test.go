@@ -194,12 +194,12 @@ func TestGetAnalytics_autoPaginateMergesPages(t *testing.T) {
 
 	svc := &service{proxy: stub}
 	result, err := svc.getAnalytics(context.Background(), "user", "linkedin_get_ad_analytics", getAnalyticsInput{
-		accountID:      "512247261",
-		startDate:      "2025-01-01",
-		endDate:        "2025-05-26",
-		pivots:         []string{"CAMPAIGN"},
-		autoPaginate:   true,
-		pageSize:       10,
+		accountID:       "512247261",
+		startDate:       "2025-01-01",
+		endDate:         "2025-05-26",
+		pivots:          []string{"CAMPAIGN"},
+		autoPaginate:    true,
+		pageSize:        10,
 		timeGranularity: "ALL",
 	})
 	if err != nil {

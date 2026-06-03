@@ -10,22 +10,37 @@ func fetchSearchPages(
 	autoPaginate bool,
 	extraHeaders map[string]string,
 ) (any, error) {
+	raw, _, err := fetchSearchPagesWithTruncation(ctx, proxy, userID, mcpTool, apiPath, query, autoPaginate, extraHeaders)
+	return raw, err
+}
+
+// fetchSearchPagesWithTruncation aggregates search pages and reports whether the pagination cap was hit.
+func fetchSearchPagesWithTruncation(
+	ctx context.Context,
+	proxy linkedinUpstreamPort,
+	userID, mcpTool, apiPath string,
+	query map[string]string,
+	autoPaginate bool,
+	extraHeaders map[string]string,
+) (any, bool, error) {
 	if !autoPaginate {
-		return proxy.requestJSON(ctx, userID, mcpTool, "GET", apiPath, query, nil, extraHeaders)
+		raw, err := proxy.requestJSON(ctx, userID, mcpTool, "GET", apiPath, query, nil, extraHeaders)
+		return raw, false, err
 	}
 
 	allElements := make([]any, 0)
 	var lastMeta map[string]any
+	truncated := false
 
-	for range maxAutoPaginatePages {
+	for page := range maxAutoPaginatePages {
 		raw, err := proxy.requestJSON(ctx, userID, mcpTool, "GET", apiPath, query, nil, extraHeaders)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
 		pageMap, ok := raw.(map[string]any)
 		if !ok {
-			return raw, nil
+			return raw, false, nil
 		}
 
 		if elements, ok := pageMap["elements"].([]any); ok {
@@ -39,6 +54,10 @@ func fetchSearchPages(
 		if nextToken == "" {
 			break
 		}
+		if page == maxAutoPaginatePages-1 {
+			truncated = true
+			break
+		}
 		query["pageToken"] = nextToken
 	}
 
@@ -47,5 +66,5 @@ func fetchSearchPages(
 		delete(lastMeta, "nextPageToken")
 		result["metadata"] = lastMeta
 	}
-	return result, nil
+	return result, truncated, nil
 }

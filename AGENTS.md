@@ -54,11 +54,12 @@ See [docs/gateway-contract.md](docs/gateway-contract.md). OAuth + token decrypti
 | New Google tool | `internal/provider/googleads/tools.go`, `accounts.go` / `reports.go` / `field_service.go` / `generic_search.go`, `schemas.go`, `schema_docs.go`, `*_test.go` — see [docs/google-ads-tools.md](docs/google-ads-tools.md) |
 | New Reddit tool | `internal/provider/reddit/tools.go`, `service.go` |
 | Analytics work | `docs/linkedin-analytics-roadmap.md`, `analytics_pagination.go` |
+| LinkedIn budget pacer | `docs/linkedin-budget-pacer.md`, `budget_pacer_orchestrator.go`, `budget_pacer_calc.go`, `campaign_snapshot.go` |
 | Gateway calls | `internal/infrastructure/gateway/client.go`, provider `proxy.go` |
 | Tool registration | `internal/app/wire.go`, `internal/provider/registry/registry.go` |
 | Org context (URL only) | `internal/infrastructure/middleware/auth_middleware.go` (OrgIDFromContext), `internal/infrastructure/security/clerk_token_verifier.go` (user id) |
 
-Reference templates: LinkedIn `linkedin_get_campaign_groups`; Google curated `google_search_keywords`; Google P2 `google_search_gaql` + `google_get_resource_metadata`.
+Reference templates: LinkedIn `linkedin_get_campaign_groups`; LinkedIn composite `linkedin_get_budget_pacer_report`; Google curated `google_search_keywords`; Google P2 `google_search_gaql` + `google_get_resource_metadata`.
 
 ## Skills (invoke with @)
 

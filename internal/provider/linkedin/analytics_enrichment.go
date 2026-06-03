@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"math"
 	"slices"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -80,6 +82,16 @@ func numericField(row map[string]any, key string) (float64, bool) {
 		return float64(v), true
 	case json.Number:
 		f, err := v.Float64()
+		if err != nil {
+			return 0, false
+		}
+		return f, true
+	case string:
+		trimmed := strings.TrimSpace(v)
+		if trimmed == "" {
+			return 0, false
+		}
+		f, err := strconv.ParseFloat(trimmed, 64)
 		if err != nil {
 			return 0, false
 		}

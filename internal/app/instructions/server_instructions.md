@@ -9,6 +9,14 @@ Guidelines:
 - Batch schema loading in one `explore_platform` call when possible.
 - If a platform is disconnected, surface the provided `connect_url` and ask the user to connect it in Jumon.
 
+## LinkedIn workflow
+
+1. Discover account: `linkedin_list_ad_accounts`.
+2. **Budget pacing** (spend vs expected, by campaign and campaign group): `linkedin_get_budget_pacer_report` with `account_id` and `date_range_start` / `date_range_end`. Optional `compare_date_range_*` for prior-period spend deltas.
+3. Funnel structure: `linkedin_get_campaign_groups` then `linkedin_get_campaigns` when you need raw campaign objects or filters not covered by the pacer.
+4. Custom reporting (demographics, conversions, CRM revenue): `linkedin_get_ad_analytics` — not for simple pacing questions.
+5. Use `auto_paginate: true` on list tools for large accounts. If the pacer returns `metadata.truncated`, narrow with `campaign_ids` or `campaign_group_ids`.
+
 ## Google Ads workflow
 
 1. Start with `google_list_ad_accounts` or `google_resolve_customer` when the user names an account (do not ask for CID if resolve succeeds).

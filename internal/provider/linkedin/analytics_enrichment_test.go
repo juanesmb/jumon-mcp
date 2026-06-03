@@ -5,6 +5,15 @@ import (
 	"testing"
 )
 
+func TestNumericField_parsesStringAmount(t *testing.T) {
+	t.Parallel()
+
+	spend, ok := numericField(map[string]any{"costInLocalCurrency": "51.638580226479322425"}, "costInLocalCurrency")
+	if !ok || spend < 51.6 || spend > 51.7 {
+		t.Fatalf("numericField() = %v, %v", spend, ok)
+	}
+}
+
 func TestDeriveAverageFrequency(t *testing.T) {
 	t.Parallel()
 

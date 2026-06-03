@@ -8,9 +8,11 @@ disable-model-invocation: true
 
 Add a new provider tool callable via `execute_platform_tool`.
 
-## Reference template
+## Reference templates
 
-Copy patterns from `linkedin_get_campaign_groups` in `internal/provider/linkedin/`.
+- **Single API call:** `linkedin_get_campaign_groups` in `internal/provider/linkedin/`.
+- **Composite read (orchestrator + pure calc):** `linkedin_get_budget_pacer_report` — `campaign_snapshot.go`, `budget_pacer_calc.go`, `budget_pacer_orchestrator.go`; see [docs/linkedin-budget-pacer.md](../../docs/linkedin-budget-pacer.md).
+- **Future writes:** extend `campaign_snapshot.go`; use `catalog.ToolActionPropose` / `ToolActionExecute` (not mixed into read orchestrators).
 
 ## Checklist
 
