@@ -1,6 +1,6 @@
 ---
 name: add-mcp-tool
-description: Add a new execute_platform_tool target in jumon-mcp for LinkedIn, Google Ads, or Reddit. Use when registering a provider tool in tools.go with service logic, schema, tests, and optional UI catalog sync.
+description: Add a new execute_platform_tool target in jumon-mcp for LinkedIn, Google Ads, Reddit, or Meta. Use when registering a provider tool in tools.go with service logic, schema, tests, and optional UI catalog sync.
 disable-model-invocation: true
 ---
 
@@ -37,11 +37,13 @@ Add a new provider tool callable via `execute_platform_tool`.
 
 6. **Google Ads** — See [reference-google.md](reference-google.md) and [docs/google-ads-tools.md](../../docs/google-ads-tools.md).
 
-7. **UI sync** — Remind to add blurb in mcp-ads-manager `apps/web/lib/mcp-provider-tools.ts` (use `@sync-mcp-tool-catalog` in that repo).
+7. **Meta Ads** — See [docs/meta-ads-tools.md](../../docs/meta-ads-tools.md) and [docs/meta-ads-api-version.md](../../docs/meta-ads-api-version.md). Graph paths are relative (version applied in vault). Use `act_` account ids.
+
+8. **UI sync** — Remind to add blurb in mcp-ads-manager `apps/web/lib/mcp-provider-tools.ts` (use `@sync-mcp-tool-catalog` in that repo).
 
 ## Tool naming
 
-- Prefix: `linkedin_`, `google_`, or `reddit_`
+- Prefix: `linkedin_`, `google_`, `reddit_`, or `meta_`
 - Snake case action: `get_campaign_groups`, `list_ad_accounts`
 
 ## Gateway

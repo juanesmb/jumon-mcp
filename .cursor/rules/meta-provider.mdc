@@ -1,0 +1,33 @@
+---
+description: Meta Ads provider tool conventions and gateway proxy
+globs: internal/provider/meta/**
+alwaysApply: false
+---
+
+# Meta provider (jumon-mcp)
+
+## Platform id
+
+`meta` — gateway provider segment and `explore_platform` platform name.
+
+## P0
+
+- Package wired in `wire.go`; `RegisterTools` registers **zero** tools until P1.
+- `proxy.go` — all calls via `gateway.Client` (`platformName = "meta"`).
+
+## Tool naming (P1+)
+
+Prefix `meta_`. Ad account ids: `act_` prefix.
+
+## API version
+
+Document **v25.0** in schemas/descriptions. Authoritative version in mcp-ads-manager `META_GRAPH_API_VERSION`.
+
+## Insights
+
+Meta covers Facebook, Instagram, and other placements. Guide agents to Insights `breakdowns` (e.g. `publisher_platform`) — not separate platforms.
+
+## Do not
+
+- Call Graph API directly from Go.
+- Store tokens in this repo.

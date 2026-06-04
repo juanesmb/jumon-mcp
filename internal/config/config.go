@@ -35,7 +35,7 @@ type GatewayConfig struct {
 	InternalSecret            string
 	ConnectURL                string
 	LinkedInAPIBaseURL        string
-	GoogleAPIVersion          string
+	GoogleAPIVersion            string
 	GoogleMaxAccessibleAccounts int
 	GoogleMaxManagerScan        int
 }
@@ -73,7 +73,6 @@ func Read() Config {
 	if googleAPIVersion == "" {
 		googleAPIVersion = "v24"
 	}
-
 	gcpProject := strings.TrimSpace(os.Getenv("GOOGLE_CLOUD_PROJECT"))
 	if gcpProject == "" {
 		gcpProject = strings.TrimSpace(os.Getenv("GCP_PROJECT"))

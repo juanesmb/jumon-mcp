@@ -19,7 +19,7 @@ Only two tools are exposed to clients: `explore_platform` and `execute_platform_
 - Registry gates tools on gateway `usable` (`IsProviderUsable`), not row existence.
 - On proxy 401, `ProxyProviderOrRefresh` retries only if refresh returns `refreshed: true`.
 - `TOKEN_REFRESH_FAILED` from gateway maps to reconnect guidance (see `docs/gateway-contract.md`).
-- Tool naming: `{platform}_{snake_case_action}` (e.g. `linkedin_get_ad_analytics`).
+- Tool naming: `{platform}_{snake_case_action}` (e.g. `linkedin_get_ad_analytics`, `meta_list_ad_accounts`).
 
 ## Registration flow
 

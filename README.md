@@ -2,7 +2,7 @@
 
 Unified MCP server for Jumon advertising providers. This server exposes a small
 facade surface (`explore_platform`, `execute_platform_tool`) and routes
-execution to provider-specific handlers (LinkedIn and Google Ads).
+execution to provider-specific handlers (LinkedIn, Google Ads, Reddit, and Meta Ads foundation).
 
 ## Environment variables
 
@@ -24,6 +24,8 @@ Optional:
 - `MCP_DEBUG_AUTH` (`true` to enable verbose auth logs)
 - `GOOGLE_ADS_API_VERSION` (default `v24`)
 - `USER_ID_HASH_SALT` — optional salt combined with hashed Clerk identifiers for correlated `user.hash` fields without logging raw JWT subjects.
+
+Meta Graph API version is configured in **mcp-ads-manager** (`META_GRAPH_API_VERSION`, default `v25.0`).
 
 GCP / OpenTelemetry knobs (omit or disable when developing without Cloud exporters):
 

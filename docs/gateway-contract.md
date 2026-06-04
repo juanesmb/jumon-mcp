@@ -22,7 +22,7 @@ Env: `GATEWAY_BASE_URL` or `JUMON_GATEWAY_BASE_URL` — base URL of the web app 
 | POST | `/api/internal/providers/{provider}/proxy` | Proxy provider API call (proactive + reactive refresh) |
 | POST | `/api/internal/providers/{provider}/refresh` | Refresh OAuth token |
 
-Providers: `linkedin`, `google`, `reddit`.
+Providers: `linkedin`, `google`, `reddit`, `meta`.
 
 ## Connection health (essential)
 

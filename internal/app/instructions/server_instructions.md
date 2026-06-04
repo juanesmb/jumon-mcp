@@ -26,3 +26,12 @@ Guidelines:
 5. Structure: campaigns → ad groups → ads. Reporting: keywords (`google_search_keywords`), Search search terms (`google_search_search_terms`), PMax search terms (`google_search_pmax_search_terms`), conversions (`google_list_conversion_actions`, `google_search_conversion_performance`), offline upload health (`google_list_offline_conversion_upload_summaries`).
 6. Empty keyword/search term results include `hint` and `channel_summary` — often means the account has no Search campaigns; try another client or PMax tool.
 7. **Prefer curated tools** for common reports. When no curated tool fits: `google_get_resource_metadata` → `google_search_gaql`. Never guess GAQL fields. Use `auto_paginate: true` (default) for large reports.
+
+## Meta Ads workflow
+
+Meta (Facebook Ads) uses one Marketing API for Facebook, Instagram, and other Meta placements. Connect Meta in the Jumon dashboard first.
+
+- **P0:** MCP read tools are not registered yet — `explore_platform` will not list `meta` until P1. Use the dashboard to connect; gateway smoke uses internal proxy only.
+- **Reporting across placements:** use Insights breakdowns such as `publisher_platform` in P1 tools to split Facebook vs Instagram.
+- Ad account ids use the `act_` prefix (e.g. `act_1234567890`).
+- API version is **v25.0** (see `docs/meta-ads-api-version.md`). Capability matrix: `docs/meta-ads-tools.md`.

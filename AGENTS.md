@@ -24,6 +24,7 @@ Workflow: explore → load schemas → execute. See `internal/app/instructions/s
 | `internal/provider/linkedin` | LinkedIn tools (richest: analytics, creatives, lead gen) |
 | `internal/provider/googleads` | Google Ads GAQL tools |
 | `internal/provider/reddit` | Reddit Ads tools |
+| `internal/provider/meta` | Meta Ads tools (P1+; P0 gateway wiring only) |
 | `internal/infrastructure/gateway` | HTTP client → mcp-ads-manager internal API |
 
 ## Key invariants
@@ -46,6 +47,13 @@ See [docs/gateway-contract.md](docs/gateway-contract.md). OAuth + token decrypti
 - [docs/google-ads-smoke-tests.md](docs/google-ads-smoke-tests.md) — manual regression checklist
 - [docs/google-ads-api-version.md](docs/google-ads-api-version.md) — API version upgrade policy
 
+## Meta Ads docs
+
+- [docs/meta-ads-tools.md](docs/meta-ads-tools.md) — P1 capability matrix (stub until tools ship)
+- [docs/meta-ads-api-version.md](docs/meta-ads-api-version.md) — Graph API v25.0 policy
+- mcp-ads-manager [docs/meta-ads-oauth.md](https://github.com/jumonintelligence/mcp-ads-manager/blob/main/docs/meta-ads-oauth.md) — OAuth + long-lived tokens
+- mcp-ads-manager [docs/meta-ads-smoke-tests.md](https://github.com/jumonintelligence/mcp-ads-manager/blob/main/docs/meta-ads-smoke-tests.md) — P0 smoke
+
 ## Start here
 
 | Task | Entry files |
@@ -53,6 +61,7 @@ See [docs/gateway-contract.md](docs/gateway-contract.md). OAuth + token decrypti
 | New LinkedIn tool | `internal/provider/linkedin/tools.go`, `service.go`, `schema_docs.go`, `*_test.go` |
 | New Google tool | `internal/provider/googleads/tools.go`, `accounts.go` / `reports.go` / `field_service.go` / `generic_search.go`, `schemas.go`, `schema_docs.go`, `*_test.go` — see [docs/google-ads-tools.md](docs/google-ads-tools.md) |
 | New Reddit tool | `internal/provider/reddit/tools.go`, `service.go` |
+| New Meta tool | `internal/provider/meta/tools.go`, `proxy.go` (+ `service.go` when adding handlers) — [docs/meta-ads-tools.md](docs/meta-ads-tools.md) |
 | Analytics work | `docs/linkedin-analytics-roadmap.md`, `analytics_pagination.go` |
 | LinkedIn budget pacer | `docs/linkedin-budget-pacer.md`, `budget_pacer_orchestrator.go`, `budget_pacer_calc.go`, `campaign_snapshot.go` |
 | Gateway calls | `internal/infrastructure/gateway/client.go`, provider `proxy.go` |
