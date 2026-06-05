@@ -147,7 +147,10 @@ func insightsProperties(includeLevel bool) map[string]any {
 		"sort":        map[string]any{"type": "string", "description": "Sort key e.g. impressions_descending."},
 		"since":       map[string]any{"type": "string"},
 		"until":       map[string]any{"type": "string"},
-		"limit":       map[string]any{"type": "integer"},
+		"limit": map[string]any{
+			"type":        "integer",
+			"description": "Results per page (default 25, max 1000 for insights).",
+		},
 		"after":       map[string]any{"type": "string"},
 		"auto_paginate": map[string]any{"type": "boolean", "description": docAutoPaginate},
 	}
@@ -155,7 +158,7 @@ func insightsProperties(includeLevel bool) map[string]any {
 		props["level"] = map[string]any{
 			"type":        "string",
 			"enum":        []string{"account", "campaign", "adset", "ad"},
-			"description": "Aggregation level (default campaign for meta_search_ad_entities).",
+			"description": docInsightsLevels + " Default campaign for meta_search_ad_entities.",
 		}
 	}
 	return props
@@ -187,6 +190,52 @@ func searchAdEntitiesSchema() map[string]any {
 	return map[string]any{
 		"type":       "object",
 		"required":   []string{"act_id"},
+		"properties": props,
+	}
+}
+
+func getAdSetSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"adset_id"},
+		"properties": map[string]any{
+			"adset_id": map[string]any{"type": "string", "description": "Meta ad set id."},
+			"fields":   map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+		},
+	}
+}
+
+func getAdSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"ad_id"},
+		"properties": map[string]any{
+			"ad_id":  map[string]any{"type": "string", "description": "Meta ad id."},
+			"fields": map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+		},
+	}
+}
+
+func deliveryErrorsSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"entity_ids"},
+		"properties": map[string]any{
+			"entity_ids": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Campaign, ad set, or ad ids to fetch delivery errors for (max 50).",
+			},
+		},
+	}
+}
+
+func listAccountPagesSchema() map[string]any {
+	props := listPaginationProperties()
+	delete(props, "act_id")
+	delete(props, "effective_status")
+	return map[string]any{
+		"type":       "object",
 		"properties": props,
 	}
 }

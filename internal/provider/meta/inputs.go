@@ -90,6 +90,20 @@ type getCampaignInput struct {
 	fields     []string
 }
 
+type getAdSetInput struct {
+	adSetID string
+	fields  []string
+}
+
+type getAdInput struct {
+	adID   string
+	fields []string
+}
+
+type deliveryErrorsInput struct {
+	entityIDs []string
+}
+
 type searchAdEntitiesInput struct {
 	actID string
 	insightsInput
@@ -142,7 +156,7 @@ func parseInsightsInput(params map[string]any, defaultFields []string) (insights
 		in.datePreset = defaultDatePreset
 	}
 	if limit, ok := toInt(params["limit"]); ok && limit > 0 {
-		in.limit = clampLimit(limit)
+		in.limit = clampInsightsLimit(limit)
 	} else {
 		in.limit = defaultListLimit
 	}
@@ -253,6 +267,40 @@ func clampLimit(limit int) int {
 		return maxListLimit
 	}
 	return limit
+}
+
+func clampInsightsLimit(limit int) int {
+	if limit > maxInsightsLimit {
+		return maxInsightsLimit
+	}
+	return limit
+}
+
+func requireAdSetID(raw string) (string, error) {
+	id := strings.TrimSpace(raw)
+	if id == "" {
+		return "", fmt.Errorf("meta: adset_id is required")
+	}
+	return id, nil
+}
+
+func requireAdID(raw string) (string, error) {
+	id := strings.TrimSpace(raw)
+	if id == "" {
+		return "", fmt.Errorf("meta: ad_id is required")
+	}
+	return id, nil
+}
+
+func parseDeliveryErrorsInput(params map[string]any) (deliveryErrorsInput, error) {
+	ids := toStringSlice(params["entity_ids"])
+	if len(ids) == 0 {
+		return deliveryErrorsInput{}, fmt.Errorf("meta: entity_ids is required")
+	}
+	if len(ids) > maxDeliveryEntityIDs {
+		return deliveryErrorsInput{}, fmt.Errorf("meta: entity_ids exceeds max %d", maxDeliveryEntityIDs)
+	}
+	return deliveryErrorsInput{entityIDs: ids}, nil
 }
 
 func toString(value any) string {

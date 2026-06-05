@@ -33,8 +33,7 @@ var embeddedFieldCatalog = []fieldContextEntry{
 	{Name: "effective_status", Levels: []string{"campaign", "adset", "ad"}, Filterable: true, Sortable: false, Description: "Delivery status considering parent state."},
 	{Name: "date_start", Levels: []string{"account", "campaign", "adset", "ad"}, Filterable: false, Sortable: false, Description: "Start date for the report row."},
 	{Name: "date_stop", Levels: []string{"account", "campaign", "adset", "ad"}, Filterable: false, Sortable: false, Description: "End date for the report row."},
-	{Name: "actions:link_click", Levels: []string{"account", "campaign", "adset", "ad"}, Filterable: false, Sortable: false, Description: "Link click actions (use colon action fields, not standalone actions)."},
-	{Name: "actions:omni_purchase", Levels: []string{"account", "campaign", "adset", "ad"}, Filterable: false, Sortable: false, Description: "Purchase actions across channels."},
+	{Name: "actions:omni_purchase", Levels: []string{"account", "campaign", "adset", "ad"}, Filterable: false, Sortable: false, Description: "Purchase actions across channels (not valid in default insights fields; request explicitly if needed)."},
 }
 
 func buildFieldContextResponse(in fieldContextInput) any {

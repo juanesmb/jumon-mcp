@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"jumon-mcp/internal/domain/catalog"
 	"jumon-mcp/internal/infrastructure/gateway"
@@ -43,9 +42,9 @@ func decodeMetaProxy(resp *infrahttp.Response, err error, gw *gateway.Client) (j
 		body := ""
 		if resp != nil {
 			code = resp.StatusCode
-			body = strings.TrimSpace(string(resp.Body))
+			body = string(resp.Body)
 		}
-		return nil, fmt.Errorf("meta api returned status %d: %s", code, body)
+		return nil, formatMetaAPIError(code, body)
 	}
 	return append(json.RawMessage(nil), resp.Body...), nil
 }

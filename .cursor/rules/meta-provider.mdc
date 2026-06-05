@@ -10,11 +10,11 @@ alwaysApply: false
 
 `meta` — gateway provider segment and `explore_platform` platform name.
 
-## Tools (P1)
+## Tools
 
-10 read tools — see [docs/meta-ads-tools.md](../../docs/meta-ads-tools.md).
+14 read tools — see [docs/meta-ads-tools.md](../../docs/meta-ads-tools.md).
 
-Prefer **`meta_search_ad_entities`** for performance questions; structure lists for navigation.
+Prefer **`meta_search_ad_entities`** for performance questions (`level: adset|ad`); structure lists + `meta_get_*` for navigation.
 
 ## File map
 
@@ -24,8 +24,8 @@ Prefer **`meta_search_ad_entities`** for performance questions; structure lists 
 | `schemas.go`, `schema_docs.go` | Agent schemas + docs |
 | `inputs.go`, `graph_query.go` | Parse + encode Graph query |
 | `pagination.go` | `auto_paginate` |
-| `accounts.go`, `structure.go`, `insights.go`, `field_context.go` | Service methods |
-| `proxy.go` | Gateway port only |
+| `accounts.go`, `structure.go`, `insights.go`, `delivery.go`, `pages.go`, `field_context.go` | Service methods |
+| `graph_errors.go`, `proxy.go` | Error parsing + gateway port |
 
 ## Conventions
 

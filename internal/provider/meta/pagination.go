@@ -16,7 +16,20 @@ func (s *service) graphGETPaginated(
 		if err != nil {
 			return nil, err
 		}
-		return unmarshalPayload(raw)
+		root, err := unmarshalPayload(raw)
+		if err != nil {
+			return nil, err
+		}
+		pageMap, ok := root.(map[string]any)
+		if !ok {
+			return root, nil
+		}
+		if _, hasMore := pagingAfterCursor(pageMap); hasMore {
+			meta := map[string]any{"has_more": true}
+			meta["hint"] = "pass after cursor from paging.cursors.after for the next page"
+			pageMap["metadata"] = meta
+		}
+		return pageMap, nil
 	}
 
 	allData := make([]any, 0)

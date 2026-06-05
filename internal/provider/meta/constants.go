@@ -1,10 +1,12 @@
 package meta
 
 const (
-	defaultListLimit     = 25
-	maxListLimit         = 100
-	defaultDatePreset    = "last_30d"
-	maxAutoPaginatePages = 10
+	defaultListLimit       = 25
+	maxListLimit           = 100
+	maxInsightsLimit       = 1000
+	defaultDatePreset      = "last_30d"
+	maxAutoPaginatePages   = 10
+	maxDeliveryEntityIDs   = 50
 )
 
 var defaultAdAccountFields = []string{
@@ -67,7 +69,6 @@ var defaultInsightsFields = []string{
 	"cpc",
 	"cpm",
 	"frequency",
-	"actions",
 	"date_start",
 	"date_stop",
 }
@@ -82,7 +83,30 @@ var defaultSearchEntitiesFields = []string{
 	"ctr",
 	"cpc",
 	"cpm",
-	"actions",
 	"date_start",
 	"date_stop",
+}
+
+var defaultAccountPageFields = []string{
+	"id",
+	"name",
+	"username",
+	"leadgen_tos_accepted",
+}
+
+var deliveryErrorBaseFields = []string{
+	"name",
+	"effective_status",
+}
+
+var deliveryErrorAdFields = []string{
+	"name",
+	"effective_status",
+	"failed_delivery_checks",
+}
+
+var deliveryErrorStructureFields = []string{
+	"name",
+	"effective_status",
+	"issues_info",
 }

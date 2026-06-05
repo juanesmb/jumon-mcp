@@ -20,6 +20,10 @@ const (
 	toolMetaGetCampaignInsights  = "meta_get_campaign_insights"
 	toolMetaSearchAdEntities     = "meta_search_ad_entities"
 	toolMetaGetFieldContext      = "meta_get_field_context"
+	toolMetaGetAdSet             = "meta_get_ad_set"
+	toolMetaGetAd                = "meta_get_ad"
+	toolMetaGetDeliveryErrors    = "meta_get_delivery_errors"
+	toolMetaListAccountPages     = "meta_list_account_pages"
 )
 
 func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error {
@@ -32,7 +36,7 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error 
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Lists Meta ad accounts for the connected user.",
-			Description:        "Calls GET /me?fields=adaccounts{...}. Start here to obtain act_id values.",
+			Description:        "Calls GET /me?fields=adaccounts{...}. Start here to obtain act_id values. " + docAccountListNote,
 			InputSchema:        listAdAccountsSchema(),
 			RequiresConnection: true,
 			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
@@ -126,7 +130,7 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error 
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Unified insights report at account/campaign/adset/ad level.",
-			Description:        docSearchEntitiesPreferred + " " + docInsightsTimePrecedence + " Call meta_get_field_context before filtering/sorting.",
+			Description:        docSearchEntitiesPreferred + " " + docInsightsLevels + " " + docInsightsTimePrecedence + " Call meta_get_field_context before filtering/sorting.",
 			InputSchema:        searchAdEntitiesSchema(),
 			RequiresConnection: true,
 			Execute:            searchAdEntitiesExecutor(svc, toolMetaSearchAdEntities),
@@ -146,6 +150,66 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error 
 					fieldNames: toStringSlice(params["field_names"]),
 					level:      strings.TrimSpace(toString(params["level"])),
 				}), nil
+			},
+		},
+		{
+			Name:               toolMetaGetAdSet,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Gets one Meta ad set by id.",
+			Description:        "Calls GET /{adset_id}.",
+			InputSchema:        getAdSetSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in := getAdSetInput{
+					adSetID: strings.TrimSpace(toString(params["adset_id"])),
+					fields:  toStringSlice(params["fields"]),
+				}
+				return svc.getAdSet(ctx, toolMetaGetAdSet, userID, in)
+			},
+		},
+		{
+			Name:               toolMetaGetAd,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Gets one Meta ad by id.",
+			Description:        "Calls GET /{ad_id}.",
+			InputSchema:        getAdSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in := getAdInput{
+					adID:   strings.TrimSpace(toString(params["ad_id"])),
+					fields: toStringSlice(params["fields"]),
+				}
+				return svc.getAd(ctx, toolMetaGetAd, userID, in)
+			},
+		},
+		{
+			Name:               toolMetaGetDeliveryErrors,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Fetches delivery-blocking errors for campaigns, ad sets, or ads.",
+			Description:        "Batch GET per entity_id with failed_delivery_checks (ads) and issues_info (campaigns/ad sets). Does not cover pacing or account disablement.",
+			InputSchema:        deliveryErrorsSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseDeliveryErrorsInput(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.getDeliveryErrors(ctx, toolMetaGetDeliveryErrors, userID, in)
+			},
+		},
+		{
+			Name:               toolMetaListAccountPages,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Lists Facebook Pages available for advertising.",
+			Description:        "Calls GET /me/accounts with leadgen_tos_accepted. " + docAccountPagesScope + " " + docLeadGenTOS + " " + docAutoPaginate,
+			InputSchema:        listAccountPagesSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				return svc.listAccountPages(ctx, toolMetaListAccountPages, userID, parseListPagination(params, defaultAccountPageFields))
 			},
 		},
 	}

@@ -20,12 +20,31 @@ func (s *service) getCampaign(ctx context.Context, mcpTool, userID string, in ge
 	if err != nil {
 		return nil, err
 	}
-	fields := in.fields
+	return s.getNode(ctx, mcpTool, userID, campaignID, in.fields, defaultCampaignListFields)
+}
+
+func (s *service) getAdSet(ctx context.Context, mcpTool, userID string, in getAdSetInput) (any, error) {
+	adSetID, err := requireAdSetID(in.adSetID)
+	if err != nil {
+		return nil, err
+	}
+	return s.getNode(ctx, mcpTool, userID, adSetID, in.fields, defaultAdSetListFields)
+}
+
+func (s *service) getAd(ctx context.Context, mcpTool, userID string, in getAdInput) (any, error) {
+	adID, err := requireAdID(in.adID)
+	if err != nil {
+		return nil, err
+	}
+	return s.getNode(ctx, mcpTool, userID, adID, in.fields, defaultAdListFields)
+}
+
+func (s *service) getNode(ctx context.Context, mcpTool, userID, nodeID string, fields, defaultFields []string) (any, error) {
 	if len(fields) == 0 {
-		fields = append([]string(nil), defaultCampaignListFields...)
+		fields = append([]string(nil), defaultFields...)
 	}
 	query := map[string]string{"fields": joinCSV(fields)}
-	raw, err := s.proxy.getWithRefresh(ctx, mcpTool, userID, campaignID, query)
+	raw, err := s.proxy.getWithRefresh(ctx, mcpTool, userID, nodeID, query)
 	if err != nil {
 		return nil, err
 	}
