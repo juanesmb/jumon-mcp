@@ -29,9 +29,11 @@ Guidelines:
 
 ## Meta Ads workflow
 
-Meta (Facebook Ads) uses one Marketing API for Facebook, Instagram, and other Meta placements. Connect Meta in the Jumon dashboard first.
+Meta (Facebook, Instagram, and other placements) uses one Marketing API. Connect Meta in the Jumon dashboard first.
 
-- **P0:** MCP read tools are not registered yet — `explore_platform` will not list `meta` until P1. Use the dashboard to connect; gateway smoke uses internal proxy only.
-- **Reporting across placements:** use Insights breakdowns such as `publisher_platform` in P1 tools to split Facebook vs Instagram.
-- Ad account ids use the `act_` prefix (e.g. `act_1234567890`).
-- API version is **v25.0** (see `docs/meta-ads-api-version.md`). Capability matrix: `docs/meta-ads-tools.md`.
+1. `meta_list_ad_accounts` → pick `act_id` (accepts `act_123` or numeric `123`).
+2. **Reporting:** prefer `meta_search_ad_entities` with `date_preset` or `time_range`. Call `meta_get_field_context` before `filtering` or `sort`.
+3. **Structure:** `meta_list_campaigns` → `meta_list_ad_sets` → `meta_list_ads`.
+4. **Placements:** use Insights `breakdowns: ["publisher_platform"]` to split Facebook vs Instagram.
+5. `auto_paginate` defaults true on list and insights tools (max 10 pages).
+6. API version **v25.0** — see `docs/meta-ads-tools.md`.

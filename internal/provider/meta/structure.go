@@ -1,0 +1,68 @@
+package meta
+
+import (
+	"context"
+	"strings"
+)
+
+func (s *service) listCampaigns(ctx context.Context, mcpTool, userID, actID string, in listCampaignsInput) (any, error) {
+	normalized, err := normalizeActID(actID)
+	if err != nil {
+		return nil, err
+	}
+	path := normalized + "/campaigns"
+	query := buildListQuery(in.listPaginationInput)
+	return s.graphGETPaginated(ctx, mcpTool, userID, path, query, in.autoPaginate)
+}
+
+func (s *service) getCampaign(ctx context.Context, mcpTool, userID string, in getCampaignInput) (any, error) {
+	campaignID, err := requireCampaignID(in.campaignID)
+	if err != nil {
+		return nil, err
+	}
+	fields := in.fields
+	if len(fields) == 0 {
+		fields = append([]string(nil), defaultCampaignListFields...)
+	}
+	query := map[string]string{"fields": joinCSV(fields)}
+	raw, err := s.proxy.getWithRefresh(ctx, mcpTool, userID, campaignID, query)
+	if err != nil {
+		return nil, err
+	}
+	return unmarshalPayload(raw)
+}
+
+func (s *service) listAdSets(ctx context.Context, mcpTool, userID, actID string, in listAdSetsInput) (any, error) {
+	normalized, err := normalizeActID(actID)
+	if err != nil {
+		return nil, err
+	}
+	path := normalized + "/adsets"
+	query := buildListQuery(in.listPaginationInput)
+	if campaignID := strings.TrimSpace(in.campaignID); campaignID != "" {
+		query["filtering"] = jsonEncode([]map[string]any{
+			{"field": "campaign.id", "operator": "EQUAL", "value": campaignID},
+		})
+	}
+	return s.graphGETPaginated(ctx, mcpTool, userID, path, query, in.autoPaginate)
+}
+
+func (s *service) listAds(ctx context.Context, mcpTool, userID, actID string, in listAdsInput) (any, error) {
+	normalized, err := normalizeActID(actID)
+	if err != nil {
+		return nil, err
+	}
+	path := normalized + "/ads"
+	query := buildListQuery(in.listPaginationInput)
+	var filters []map[string]any
+	if campaignID := strings.TrimSpace(in.campaignID); campaignID != "" {
+		filters = append(filters, map[string]any{"field": "campaign.id", "operator": "EQUAL", "value": campaignID})
+	}
+	if adSetID := strings.TrimSpace(in.adSetID); adSetID != "" {
+		filters = append(filters, map[string]any{"field": "adset.id", "operator": "EQUAL", "value": adSetID})
+	}
+	if len(filters) > 0 {
+		query["filtering"] = jsonEncode(filters)
+	}
+	return s.graphGETPaginated(ctx, mcpTool, userID, path, query, in.autoPaginate)
+}

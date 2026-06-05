@@ -37,7 +37,7 @@ Add a new provider tool callable via `execute_platform_tool`.
 
 6. **Google Ads** — See [reference-google.md](reference-google.md) and [docs/google-ads-tools.md](../../docs/google-ads-tools.md).
 
-7. **Meta Ads** — See [docs/meta-ads-tools.md](../../docs/meta-ads-tools.md) and [docs/meta-ads-api-version.md](../../docs/meta-ads-api-version.md). Graph paths are relative (version applied in vault). Use `act_` account ids.
+7. **Meta Ads** — See [reference-meta.md](reference-meta.md), [docs/meta-ads-tools.md](../../docs/meta-ads-tools.md), and [docs/meta-ads-api-version.md](../../docs/meta-ads-api-version.md). Graph paths are relative (version applied in vault). Use `act_` account ids.
 
 8. **UI sync** — Remind to add blurb in mcp-ads-manager `apps/web/lib/mcp-provider-tools.ts` (use `@sync-mcp-tool-catalog` in that repo).
 
