@@ -94,11 +94,6 @@ var defaultAccountPageFields = []string{
 	"leadgen_tos_accepted",
 }
 
-var deliveryErrorBaseFields = []string{
-	"name",
-	"effective_status",
-}
-
 var deliveryErrorAdFields = []string{
 	"name",
 	"effective_status",
@@ -109,4 +104,84 @@ var deliveryErrorStructureFields = []string{
 	"name",
 	"effective_status",
 	"issues_info",
+}
+
+var deliveryErrorBatchFields = []string{
+	"name",
+	"effective_status",
+	"failed_delivery_checks",
+	"issues_info",
+}
+
+var defaultCreativeListFields = []string{
+	"id",
+	"name",
+	"status",
+	"object_type",
+	"thumbnail_url",
+	"title",
+	"body",
+	"call_to_action_type",
+}
+
+var defaultCreativeFields = []string{
+	"id",
+	"name",
+	"account_id",
+	"status",
+	"object_type",
+	"object_story_spec",
+	"asset_feed_spec",
+	"thumbnail_url",
+	"title",
+	"body",
+	"link_url",
+	"call_to_action_type",
+	"image_hash",
+	"video_id",
+}
+
+var defaultAdImageFields = []string{
+	"id",
+	"hash",
+	"name",
+	"url",
+	"width",
+	"height",
+	"status",
+	"created_time",
+}
+
+var defaultAdVideoFields = []string{
+	"id",
+	"title",
+	"source",
+	"picture",
+	"length",
+	"created_time",
+}
+
+var defaultCustomAudienceListFields = []string{
+	"id",
+	"name",
+	"subtype",
+	"approximate_count_lower_bound",
+	"approximate_count_upper_bound",
+	"delivery_status",
+	"time_created",
+}
+
+var defaultCustomAudienceFields = []string{
+	"id",
+	"name",
+	"description",
+	"subtype",
+	"approximate_count_lower_bound",
+	"approximate_count_upper_bound",
+	"delivery_status",
+	"operation_status",
+	"time_created",
+	"time_updated",
+	"rule",
+	"customer_file_source",
 }

@@ -232,8 +232,11 @@ func deliveryErrorsSchema() map[string]any {
 
 func listAccountPagesSchema() map[string]any {
 	props := listPaginationProperties()
-	delete(props, "act_id")
 	delete(props, "effective_status")
+	props["act_id"] = map[string]any{
+		"type":        "string",
+		"description": "Optional. When set, lists Pages promotable from this ad account via GET /{act_id}/promote_pages. When omitted, uses GET /me/accounts.",
+	}
 	return map[string]any{
 		"type":       "object",
 		"properties": props,
@@ -254,6 +257,172 @@ func fieldContextSchema() map[string]any {
 				"enum":        []string{"account", "campaign", "adset", "ad"},
 				"description": "Optional filter to fields valid at this level.",
 			},
+		},
+	}
+}
+
+func listCreativesSchema() map[string]any {
+	props := listPaginationProperties()
+	props["filtering"] = map[string]any{
+		"type":        "array",
+		"description": "Additional filter objects with field, operator, value.",
+		"items":       map[string]any{"type": "object"},
+	}
+	return map[string]any{
+		"type":       "object",
+		"required":   []string{"act_id"},
+		"properties": props,
+	}
+}
+
+func getCreativeSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"creative_id"},
+		"properties": map[string]any{
+			"creative_id": map[string]any{"type": "string", "description": "Meta ad creative id."},
+			"fields":      map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+			"thumbnail_width":  map[string]any{"type": "integer", "description": "Thumbnail width in pixels (default 64)."},
+			"thumbnail_height": map[string]any{"type": "integer", "description": "Thumbnail height in pixels (default 64)."},
+		},
+	}
+}
+
+func adImagesSchema() map[string]any {
+	props := listPaginationProperties()
+	props["hashes"] = map[string]any{
+		"type":        "array",
+		"items":       map[string]any{"type": "string"},
+		"description": "Filter by image hashes.",
+	}
+	props["name"] = map[string]any{"type": "string", "description": "Filter by image name (partial match)."}
+	props["minwidth"] = map[string]any{"type": "integer", "description": "Minimum image width in pixels."}
+	props["minheight"] = map[string]any{"type": "integer", "description": "Minimum image height in pixels."}
+	return map[string]any{
+		"type":       "object",
+		"required":   []string{"act_id"},
+		"properties": props,
+	}
+}
+
+func adVideosSchema() map[string]any {
+	props := listPaginationProperties()
+	props["video_ids"] = map[string]any{
+		"type":        "array",
+		"items":       map[string]any{"type": "string"},
+		"description": "Optional filter to specific video ids.",
+	}
+	return map[string]any{
+		"type":       "object",
+		"required":   []string{"act_id"},
+		"properties": props,
+	}
+}
+
+func adPreviewSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"ad_id"},
+		"properties": map[string]any{
+			"ad_id": map[string]any{"type": "string", "description": "Meta ad id to preview."},
+			"ad_format": map[string]any{
+				"type":        "string",
+				"description": "Placement format e.g. DESKTOP_FEED_STANDARD, INSTAGRAM_STANDARD, INSTAGRAM_STORY, FACEBOOK_REELS_MOBILE.",
+			},
+			"locale":     map[string]any{"type": "string", "description": "Preview locale e.g. en_US."},
+			"start_date": map[string]any{"type": "string", "description": "Preview start date (UNIX timestamp) for scheduled ads."},
+			"end_date":   map[string]any{"type": "string", "description": "Preview end date (UNIX timestamp) for scheduled ads."},
+		},
+	}
+}
+
+func searchInterestsSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"q"},
+		"properties": map[string]any{
+			"q":     map[string]any{"type": "string", "description": "Interest search keyword."},
+			"limit": map[string]any{"type": "integer", "description": "Max results (default 25)."},
+		},
+	}
+}
+
+func searchGeoLocationsSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"q"},
+		"properties": map[string]any{
+			"q": map[string]any{"type": "string", "description": "Geo search query e.g. New York, Japan."},
+			"location_types": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Optional types: country, region, city, zip, geo_market, electoral_district.",
+			},
+			"limit": map[string]any{"type": "integer", "description": "Max results (default 25)."},
+		},
+	}
+}
+
+func estimateAudienceSizeSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"act_id", "targeting"},
+		"properties": map[string]any{
+			"act_id": actIDProperty(),
+			"targeting": map[string]any{
+				"type":        "object",
+				"description": "Full targeting spec (geo_locations, age_min, age_max, interests, flexible_spec, etc.).",
+			},
+			"optimization_goal": map[string]any{
+				"type":        "string",
+				"description": "Default REACH. Other values: LINK_CLICKS, LANDING_PAGE_VIEWS, OFFSITE_CONVERSIONS, IMPRESSIONS.",
+			},
+		},
+	}
+}
+
+func listCustomAudiencesSchema() map[string]any {
+	props := listPaginationProperties()
+	props["subtype_filter"] = map[string]any{
+		"type":        "string",
+		"description": "Optional subtype filter: CUSTOM, WEBSITE, LOOKALIKE, APP, ENGAGEMENT, OFFLINE_CONVERSION.",
+	}
+	return map[string]any{
+		"type":       "object",
+		"required":   []string{"act_id"},
+		"properties": props,
+	}
+}
+
+func getCustomAudienceSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"custom_audience_id"},
+		"properties": map[string]any{
+			"custom_audience_id": map[string]any{"type": "string", "description": "Custom audience id."},
+			"fields":             map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+		},
+	}
+}
+
+func listCustomAudienceAdSetsSchema() map[string]any {
+	props := listPaginationProperties()
+	delete(props, "act_id")
+	delete(props, "effective_status")
+	props["custom_audience_id"] = map[string]any{"type": "string", "description": "Custom audience id."}
+	return map[string]any{
+		"type":       "object",
+		"required":   []string{"custom_audience_id"},
+		"properties": props,
+	}
+}
+
+func opportunityScoreSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"act_id"},
+		"properties": map[string]any{
+			"act_id": actIDProperty(),
 		},
 	}
 }

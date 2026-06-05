@@ -34,8 +34,11 @@ Meta (Facebook, Instagram, and other placements) uses one Marketing API. Connect
 1. `meta_list_ad_accounts` → pick `act_id` (accepts `act_123` or numeric `123`).
 2. **Reporting:** prefer `meta_search_ad_entities` with `date_preset` or `time_range`. Use `level: adset` or `level: ad` for lower-level performance (no separate insight tools). Call `meta_get_field_context` before `filtering` or `sort`.
 3. **Structure:** `meta_list_campaigns` → `meta_list_ad_sets` → `meta_list_ads`; drill down with `meta_get_campaign`, `meta_get_ad_set`, `meta_get_ad`.
-4. **Delivery issues:** `meta_get_delivery_errors` with campaign/ad set/ad ids when ads are not delivering.
-5. **Lead Gen / creatives:** `meta_list_account_pages` for `page_id` and `leadgen_tos_accepted` before Lead Gen work.
-6. **Placements:** use Insights `breakdowns: ["publisher_platform"]` to split Facebook vs Instagram.
-7. `auto_paginate` defaults true on list and insights tools (max 10 pages; insights limit max 1000 per page).
-8. API version **v25.0** — see `docs/meta-ads-tools.md`.
+4. **Delivery issues:** `meta_get_delivery_errors` with campaign/ad set/ad ids when ads are not delivering (uses Graph Batch for multiple ids).
+5. **Lead Gen / Pages:** `meta_list_account_pages` — optional `act_id` for promote_pages; check `leadgen_tos_accepted` before Lead Gen work.
+6. **Creatives / media:** `meta_list_creatives`, `meta_get_creative`, `meta_get_ad_images`, `meta_get_ad_videos`, `meta_get_ad_preview`.
+7. **Targeting / audiences:** `meta_search_interests`, `meta_search_geo_locations`, `meta_estimate_audience_size`; `meta_list_custom_audiences` → `meta_get_custom_audience`.
+8. **Optimization:** `meta_get_opportunity_score` for account-level recommendations (not per-campaign).
+9. **Placements:** use Insights `breakdowns: ["publisher_platform"]` to split Facebook vs Instagram.
+10. `auto_paginate` defaults true on list and insights tools (max 10 pages; insights limit max 1000 per page).
+11. API version **v25.0** — see `docs/meta-ads-tools.md`.

@@ -19,5 +19,5 @@ const (
 
 	docLeadGenTOS = "When leadgen_tos_accepted is false, direct the user to https://www.facebook.com/ads/leadgen/tos before Lead Gen campaigns."
 
-	docAccountPagesScope = "Pages are user/token-scoped via GET /me/accounts (not filtered by ad account)."
+	docAccountPagesScope = "Without act_id: GET /me/accounts (user/token-scoped Pages). With act_id: GET /{act_id}/promote_pages (Pages promotable from that ad account). Reconnect with pages_show_list if Page fields are missing."
 )

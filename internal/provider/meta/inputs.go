@@ -114,6 +114,18 @@ type fieldContextInput struct {
 	level      string
 }
 
+type listAccountPagesInput struct {
+	listPaginationInput
+	actID string
+}
+
+func parseListAccountPagesInput(params map[string]any) listAccountPagesInput {
+	return listAccountPagesInput{
+		listPaginationInput: parseListPagination(params, defaultAccountPageFields),
+		actID:               strings.TrimSpace(toString(params["act_id"])),
+	}
+}
+
 func parseListPagination(params map[string]any, defaultFields []string) listPaginationInput {
 	in := listPaginationInput{
 		after:        strings.TrimSpace(toString(params["after"])),

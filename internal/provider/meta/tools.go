@@ -24,6 +24,18 @@ const (
 	toolMetaGetAd                = "meta_get_ad"
 	toolMetaGetDeliveryErrors    = "meta_get_delivery_errors"
 	toolMetaListAccountPages     = "meta_list_account_pages"
+	toolMetaListCreatives        = "meta_list_creatives"
+	toolMetaGetCreative          = "meta_get_creative"
+	toolMetaGetAdImages          = "meta_get_ad_images"
+	toolMetaGetAdVideos          = "meta_get_ad_videos"
+	toolMetaGetAdPreview         = "meta_get_ad_preview"
+	toolMetaSearchInterests      = "meta_search_interests"
+	toolMetaSearchGeoLocations   = "meta_search_geo_locations"
+	toolMetaEstimateAudienceSize = "meta_estimate_audience_size"
+	toolMetaListCustomAudiences  = "meta_list_custom_audiences"
+	toolMetaGetCustomAudience    = "meta_get_custom_audience"
+	toolMetaListCustomAudienceAdSets = "meta_list_custom_audience_ad_sets"
+	toolMetaGetOpportunityScore  = "meta_get_opportunity_score"
 )
 
 func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error {
@@ -205,11 +217,172 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error 
 			Platform:           platformName,
 			Action:             catalog.ToolActionRead,
 			Summary:            "Lists Facebook Pages available for advertising.",
-			Description:        "Calls GET /me/accounts with leadgen_tos_accepted. " + docAccountPagesScope + " " + docLeadGenTOS + " " + docAutoPaginate,
+			Description:        "Without act_id: GET /me/accounts. With act_id: GET /{act_id}/promote_pages. " + docAccountPagesScope + " " + docLeadGenTOS + " " + docAutoPaginate,
 			InputSchema:        listAccountPagesSchema(),
 			RequiresConnection: true,
 			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
-				return svc.listAccountPages(ctx, toolMetaListAccountPages, userID, parseListPagination(params, defaultAccountPageFields))
+				return svc.listAccountPages(ctx, toolMetaListAccountPages, userID, parseListAccountPagesInput(params))
+			},
+		},
+		{
+			Name:               toolMetaListCreatives,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Lists ad creatives in a Meta ad account.",
+			Description:        "Calls GET /{act_id}/adcreatives with optional effective_status and filtering. " + docAutoPaginate,
+			InputSchema:        listCreativesSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseListCreativesInput(params)
+				if err != nil {
+					return nil, err
+				}
+				actID := strings.TrimSpace(toString(params["act_id"]))
+				return svc.listCreatives(ctx, toolMetaListCreatives, userID, actID, in)
+			},
+		},
+		{
+			Name:               toolMetaGetCreative,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Gets one Meta ad creative by id.",
+			Description:        "Calls GET /{creative_id} with optional thumbnail dimensions.",
+			InputSchema:        getCreativeSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				return svc.getCreative(ctx, toolMetaGetCreative, userID, parseGetCreativeInput(params))
+			},
+		},
+		{
+			Name:               toolMetaGetAdImages,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Lists ad images in a Meta ad account.",
+			Description:        "Calls GET /{act_id}/adimages. Filter by hashes, name, or minimum dimensions. " + docAutoPaginate,
+			InputSchema:        adImagesSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in := parseAdImagesInput(params)
+				actID := strings.TrimSpace(toString(params["act_id"]))
+				return svc.getAdImages(ctx, toolMetaGetAdImages, userID, actID, in)
+			},
+		},
+		{
+			Name:               toolMetaGetAdVideos,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Lists ad videos in a Meta ad account.",
+			Description:        "Calls GET /{act_id}/advideos. Optional video_ids filter. " + docAutoPaginate,
+			InputSchema:        adVideosSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in := parseAdVideosInput(params)
+				actID := strings.TrimSpace(toString(params["act_id"]))
+				return svc.getAdVideos(ctx, toolMetaGetAdVideos, userID, actID, in)
+			},
+		},
+		{
+			Name:               toolMetaGetAdPreview,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Generates ad preview HTML for a placement format.",
+			Description:        "Calls GET /{ad_id}/previews. Pass ad_format for a specific placement (e.g. INSTAGRAM_STANDARD).",
+			InputSchema:        adPreviewSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				return svc.getAdPreview(ctx, toolMetaGetAdPreview, userID, parseAdPreviewInput(params))
+			},
+		},
+		{
+			Name:               toolMetaSearchInterests,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Searches Meta interest targeting options.",
+			Description:        "Calls GET /search?type=adinterest&q=.... Returns interest ids for targeting.flexible_spec.",
+			InputSchema:        searchInterestsSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				return svc.searchInterests(ctx, toolMetaSearchInterests, userID, parseSearchInterestsInput(params))
+			},
+		},
+		{
+			Name:               toolMetaSearchGeoLocations,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Searches Meta geo targeting locations.",
+			Description:        "Calls GET /search?type=adgeolocation&q=.... Returns location keys for targeting.geo_locations.",
+			InputSchema:        searchGeoLocationsSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				return svc.searchGeoLocations(ctx, toolMetaSearchGeoLocations, userID, parseSearchGeoInput(params))
+			},
+		},
+		{
+			Name:               toolMetaEstimateAudienceSize,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Estimates audience size for a targeting spec.",
+			Description:        "Calls GET /{act_id}/delivery_estimate with targeting_spec and optimization_goal (default REACH).",
+			InputSchema:        estimateAudienceSizeSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseEstimateAudienceInput(params)
+				if err != nil {
+					return nil, err
+				}
+				actID := strings.TrimSpace(toString(params["act_id"]))
+				return svc.estimateAudienceSize(ctx, toolMetaEstimateAudienceSize, userID, actID, in)
+			},
+		},
+		{
+			Name:               toolMetaListCustomAudiences,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Lists custom audiences for a Meta ad account.",
+			Description:        "Calls GET /{act_id}/customaudiences. Optional subtype_filter. " + docAutoPaginate,
+			InputSchema:        listCustomAudiencesSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in := parseListCustomAudiencesInput(params)
+				actID := strings.TrimSpace(toString(params["act_id"]))
+				return svc.listCustomAudiences(ctx, toolMetaListCustomAudiences, userID, actID, in)
+			},
+		},
+		{
+			Name:               toolMetaGetCustomAudience,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Gets one custom audience by id.",
+			Description:        "Calls GET /{custom_audience_id} with size, delivery status, and subtype fields.",
+			InputSchema:        getCustomAudienceSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				return svc.getCustomAudience(ctx, toolMetaGetCustomAudience, userID, parseGetCustomAudienceInput(params))
+			},
+		},
+		{
+			Name:               toolMetaListCustomAudienceAdSets,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Lists ad sets targeting a custom audience.",
+			Description:        "Calls GET /{custom_audience_id}/adsets. Use before deleting an audience to see impacted ad sets. " + docAutoPaginate,
+			InputSchema:        listCustomAudienceAdSetsSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				return svc.listCustomAudienceAdSets(ctx, toolMetaListCustomAudienceAdSets, userID, parseListCustomAudienceAdSetsInput(params))
+			},
+		},
+		{
+			Name:               toolMetaGetOpportunityScore,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Account-level opportunity score and recommendations.",
+			Description:        "Calls GET /{act_id}/recommendations. Score is account-level only — not per campaign or ad. Refer to lift as points, not impact.",
+			InputSchema:        opportunityScoreSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				actID := strings.TrimSpace(toString(params["act_id"]))
+				return svc.getOpportunityScore(ctx, toolMetaGetOpportunityScore, userID, actID)
 			},
 		},
 	}

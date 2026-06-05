@@ -3,17 +3,84 @@ package meta
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 )
 
 func (s *service) getDeliveryErrors(ctx context.Context, mcpTool, userID string, in deliveryErrorsInput) (any, error) {
-	results := make([]map[string]any, 0, len(in.entityIDs))
-
-	for _, entityID := range in.entityIDs {
-		id := strings.TrimSpace(entityID)
-		if id == "" {
-			continue
+	ids := normalizeEntityIDs(in.entityIDs)
+	if len(ids) == 0 {
+		return map[string]any{"results": []any{}}, nil
+	}
+	if len(ids) == 1 {
+		row, err := s.fetchDeliveryErrorRow(ctx, mcpTool, userID, ids[0])
+		if err != nil {
+			return nil, err
 		}
+		if row == nil {
+			return map[string]any{"results": []map[string]any{{"entity_id": ids[0]}}}, nil
+		}
+		return map[string]any{"results": []map[string]any{buildDeliveryErrorEntry(ids[0], row)}}, nil
+	}
+
+	results, err := s.fetchDeliveryErrorsBatch(ctx, mcpTool, userID, ids)
+	if err != nil {
+		results, err = s.fetchDeliveryErrorsSequential(ctx, mcpTool, userID, ids)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return map[string]any{"results": results}, nil
+}
+
+func normalizeEntityIDs(ids []string) []string {
+	out := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if trimmed := strings.TrimSpace(id); trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
+}
+
+func (s *service) fetchDeliveryErrorsBatch(ctx context.Context, mcpTool, userID string, ids []string) ([]map[string]any, error) {
+	results := make([]map[string]any, 0, len(ids))
+	for start := 0; start < len(ids); start += maxDeliveryEntityIDs {
+		end := start + maxDeliveryEntityIDs
+		if end > len(ids) {
+			end = len(ids)
+		}
+		chunk := ids[start:end]
+		urls := make([]string, len(chunk))
+		for i, id := range chunk {
+			urls[i] = buildDeliveryRelativeURL(id, joinCSV(deliveryErrorBatchFields))
+		}
+		items, err := s.graphBatchGET(ctx, mcpTool, userID, urls)
+		if err != nil {
+			return nil, err
+		}
+		if len(items) != len(chunk) {
+			return nil, fmt.Errorf("meta: batch response length mismatch")
+		}
+		for i, item := range items {
+			requestedID := chunk[i]
+			row, err := parseBatchItemBody(item)
+			if err != nil {
+				return nil, err
+			}
+			if row == nil {
+				results = append(results, map[string]any{"entity_id": requestedID})
+				continue
+			}
+			results = append(results, buildDeliveryErrorEntry(requestedID, row))
+		}
+	}
+	return results, nil
+}
+
+func (s *service) fetchDeliveryErrorsSequential(ctx context.Context, mcpTool, userID string, ids []string) ([]map[string]any, error) {
+	results := make([]map[string]any, 0, len(ids))
+	for _, id := range ids {
 		row, err := s.fetchDeliveryErrorRow(ctx, mcpTool, userID, id)
 		if err != nil {
 			return nil, err
@@ -24,8 +91,7 @@ func (s *service) getDeliveryErrors(ctx context.Context, mcpTool, userID string,
 		}
 		results = append(results, buildDeliveryErrorEntry(id, row))
 	}
-
-	return map[string]any{"results": results}, nil
+	return results, nil
 }
 
 func (s *service) fetchDeliveryErrorRow(ctx context.Context, mcpTool, userID, entityID string) (map[string]any, error) {
@@ -66,7 +132,7 @@ func buildDeliveryErrorEntry(requestedID string, row map[string]any) map[string]
 		entry["entity_id"] = v
 	}
 	entry["entity_type"] = inferEntityType(row)
-	for _, key := range append(append([]string{}, deliveryErrorBaseFields...), "failed_delivery_checks", "issues_info") {
+	for _, key := range deliveryErrorBatchFields {
 		if v, ok := row[key]; ok {
 			entry[key] = v
 		}

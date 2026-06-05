@@ -12,7 +12,7 @@ alwaysApply: false
 
 ## Tools
 
-14 read tools — see [docs/meta-ads-tools.md](../../docs/meta-ads-tools.md).
+26 read tools — see [docs/meta-ads-tools.md](../../docs/meta-ads-tools.md).
 
 Prefer **`meta_search_ad_entities`** for performance questions (`level: adset|ad`); structure lists + `meta_get_*` for navigation.
 
@@ -23,15 +23,19 @@ Prefer **`meta_search_ad_entities`** for performance questions (`level: adset|ad
 | `tools.go` | Registration |
 | `schemas.go`, `schema_docs.go` | Agent schemas + docs |
 | `inputs.go`, `graph_query.go` | Parse + encode Graph query |
+| `graph_batch.go` | Graph Batch API (delivery errors) |
 | `pagination.go` | `auto_paginate` |
-| `accounts.go`, `structure.go`, `insights.go`, `delivery.go`, `pages.go`, `field_context.go` | Service methods |
-| `graph_errors.go`, `proxy.go` | Error parsing + gateway port |
+| `accounts.go`, `structure.go`, `insights.go`, `delivery.go`, `pages.go` | Core service methods |
+| `field_context.go`, `field_catalog_data.go` | Embedded field catalog |
+| `creatives.go`, `media.go`, `targeting.go`, `audiences.go`, `intelligence.go` | P3/P4 tools |
+| `graph_errors.go`, `proxy.go` | Error parsing + gateway port (GET + POST form) |
 
 ## Conventions
 
 - Prefix `meta_`. Normalize `act_id` to `act_` in parsers.
 - All calls via `gateway.Client` — never hold tokens in Go.
-- Graph query: pre-encode JSON params (`filtering`, `time_range`) as strings in query map.
+- Graph query: pre-encode JSON params (`filtering`, `time_range`, `targeting_spec`) as strings in query map.
+- Graph Batch: POST form `batch` JSON array via `postFormWithRefresh`.
 - API version **v25.0** in descriptions; authoritative env in mcp-ads-manager.
 
 ## Do not
@@ -39,3 +43,4 @@ Prefer **`meta_search_ad_entities`** for performance questions (`level: adset|ad
 - Call Graph API directly from Go.
 - Expose top-level MCP tools (register in internal registry only).
 - Add Meta-specific gateway routes.
+- Ship Ad Library tools (`ads_archive`).

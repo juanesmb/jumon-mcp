@@ -22,3 +22,9 @@ func TestLevelMatchesFieldContext(t *testing.T) {
 		}
 	}
 }
+
+func TestEmbeddedFieldCatalogSize(t *testing.T) {
+	if len(embeddedFieldCatalog) < 30 {
+		t.Fatalf("expected expanded catalog, got %d entries", len(embeddedFieldCatalog))
+	}
+}

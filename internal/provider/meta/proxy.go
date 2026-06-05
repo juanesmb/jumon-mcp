@@ -12,6 +12,7 @@ import (
 
 type metaUpstreamPort interface {
 	getWithRefresh(ctx context.Context, mcpTool, userID, path string, query map[string]string) (json.RawMessage, error)
+	postFormWithRefresh(ctx context.Context, mcpTool, userID, path string, query map[string]string, body map[string]any) (json.RawMessage, error)
 }
 
 type metaGateway struct {
@@ -24,6 +25,11 @@ func newMetaGateway(c *gateway.Client) metaUpstreamPort {
 
 func (m *metaGateway) getWithRefresh(ctx context.Context, mcpTool, userID, path string, query map[string]string) (json.RawMessage, error) {
 	resp, err := m.client.ProxyProviderOrRefresh(ctx, platformName, mcpTool, userID, "GET", path, query, nil, nil)
+	return decodeMetaProxy(resp, err, m.client)
+}
+
+func (m *metaGateway) postFormWithRefresh(ctx context.Context, mcpTool, userID, path string, query map[string]string, body map[string]any) (json.RawMessage, error) {
+	resp, err := m.client.ProxyProviderOrRefresh(ctx, platformName, mcpTool, userID, "POST", path, query, body, nil)
 	return decodeMetaProxy(resp, err, m.client)
 }
 
