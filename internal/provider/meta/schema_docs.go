@@ -20,4 +20,16 @@ const (
 	docLeadGenTOS = "When leadgen_tos_accepted is false, direct the user to https://www.facebook.com/ads/leadgen/tos before Lead Gen campaigns."
 
 	docAccountPagesScope = "Without act_id: GET /me/accounts (user/token-scoped Pages). With act_id: GET /{act_id}/promote_pages (Pages promotable from that ad account). Reconnect with pages_show_list if Page fields are missing."
+
+	docDatasetID = "Meta pixel/dataset id (numeric). Same value returned by meta_list_datasets."
+
+	docMeasurementWorkflow = "Measurement ladder: meta_list_datasets → meta_get_dataset → meta_list_custom_conversions; signal health via meta_get_dataset_stats / meta_get_dataset_quality."
+
+	docActivitiesTime = "time_range overrides since/until. Default Graph window is ~1 week when no dates are set."
+
+	docInterestSuggestions = "Pass interest_list as seed names (e.g. [\"Basketball\"]); returns related interests for targeting research."
+
+	docDemographicClass = "Targeting category class. Default demographics. Also: life_events, industries, income, family_statuses, user_device, user_os."
+
+	docDatasetQualityNote = "Dataset Quality API returns EMQ and coverage for a pixel. Requires ads_read on the connected user token."
 )

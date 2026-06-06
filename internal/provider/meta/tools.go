@@ -35,7 +35,18 @@ const (
 	toolMetaListCustomAudiences  = "meta_list_custom_audiences"
 	toolMetaGetCustomAudience    = "meta_get_custom_audience"
 	toolMetaListCustomAudienceAdSets = "meta_list_custom_audience_ad_sets"
-	toolMetaGetOpportunityScore  = "meta_get_opportunity_score"
+	toolMetaGetOpportunityScore       = "meta_get_opportunity_score"
+	toolMetaListCustomConversions     = "meta_list_custom_conversions"
+	toolMetaListDatasets              = "meta_list_datasets"
+	toolMetaGetDataset                = "meta_get_dataset"
+	toolMetaListCreativeAds           = "meta_list_creative_ads"
+	toolMetaGetAccountActivities      = "meta_get_account_activities"
+	toolMetaSearchBehaviors           = "meta_search_behaviors"
+	toolMetaSearchDemographics        = "meta_search_demographics"
+	toolMetaGetInterestSuggestions    = "meta_get_interest_suggestions"
+	toolMetaGetDatasetStats           = "meta_get_dataset_stats"
+	toolMetaGetDatasetQuality         = "meta_get_dataset_quality"
+	toolMetaGetAdSetActivities        = "meta_get_ad_set_activities"
 )
 
 func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error {
@@ -383,6 +394,169 @@ func RegisterTools(reg *registry.Registry, gatewayClient *gateway.Client) error 
 			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
 				actID := strings.TrimSpace(toString(params["act_id"]))
 				return svc.getOpportunityScore(ctx, toolMetaGetOpportunityScore, userID, actID)
+			},
+		},
+		{
+			Name:               toolMetaListCustomConversions,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Lists custom conversion events on a Meta ad account.",
+			Description:        docMeasurementWorkflow + " Calls GET /{act_id}/customconversions.",
+			InputSchema:        listCustomConversionsSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in := parseListCustomConversionsInput(params)
+				actID := strings.TrimSpace(toString(params["act_id"]))
+				return svc.listCustomConversions(ctx, toolMetaListCustomConversions, userID, actID, in)
+			},
+		},
+		{
+			Name:               toolMetaListDatasets,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Lists pixel/dataset nodes on a Meta ad account.",
+			Description:        "Calls GET /{act_id}/adspixels. " + docMeasurementWorkflow,
+			InputSchema:        listDatasetsSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in := parseListPagination(params, defaultDatasetListFields)
+				actID := strings.TrimSpace(toString(params["act_id"]))
+				return svc.listDatasets(ctx, toolMetaListDatasets, userID, actID, in)
+			},
+		},
+		{
+			Name:               toolMetaGetDataset,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Fetches one Meta pixel/dataset by id.",
+			Description:        "Calls GET /{dataset_id}. Use after meta_list_datasets to inspect last_fired_time and availability.",
+			InputSchema:        getDatasetSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				return svc.getDataset(ctx, toolMetaGetDataset, userID, parseGetDatasetInput(params))
+			},
+		},
+		{
+			Name:               toolMetaListCreativeAds,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Lists ads that use a given creative.",
+			Description:        "Calls GET /{creative_id}/ads. Creative governance: meta_list_creatives → meta_list_creative_ads.",
+			InputSchema:        listCreativeAdsSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseListCreativeAdsInput(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.listCreativeAds(ctx, toolMetaListCreativeAds, userID, in)
+			},
+		},
+		{
+			Name:               toolMetaGetAccountActivities,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Returns account-level change history for a Meta ad account.",
+			Description:        "Calls GET /{act_id}/activities. " + docActivitiesTime,
+			InputSchema:        accountActivitiesSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseActivitiesInput(params)
+				if err != nil {
+					return nil, err
+				}
+				actID := strings.TrimSpace(toString(params["act_id"]))
+				return svc.getAccountActivities(ctx, toolMetaGetAccountActivities, userID, actID, in)
+			},
+		},
+		{
+			Name:               toolMetaSearchBehaviors,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Searches Meta behavior targeting categories.",
+			Description:        "Calls GET /search?type=adTargetingCategory&class=behaviors. Targeting research after interests/geo.",
+			InputSchema:        searchBehaviorsSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				return svc.searchBehaviors(ctx, toolMetaSearchBehaviors, userID, parseSearchLimit(params))
+			},
+		},
+		{
+			Name:               toolMetaSearchDemographics,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Searches Meta demographic targeting categories.",
+			Description:        "Calls GET /search?type=adTargetingCategory&class={class}. " + docDemographicClass,
+			InputSchema:        searchDemographicsSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				class := parseDemographicClass(params)
+				return svc.searchDemographics(ctx, toolMetaSearchDemographics, userID, class, parseSearchLimit(params))
+			},
+		},
+		{
+			Name:               toolMetaGetInterestSuggestions,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Suggests related interests from seed interest names.",
+			Description:        "Calls GET /search?type=adinterestsuggestion. " + docInterestSuggestions,
+			InputSchema:        interestSuggestionsSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseInterestSuggestionsInput(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.getInterestSuggestions(ctx, toolMetaGetInterestSuggestions, userID, in)
+			},
+		},
+		{
+			Name:               toolMetaGetDatasetStats,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Returns event firing stats for a Meta pixel/dataset.",
+			Description:        "Calls GET /{dataset_id}/stats. Signal health check — is Purchase (or another event) firing?",
+			InputSchema:        datasetStatsSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseDatasetStatsInput(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.getDatasetStats(ctx, toolMetaGetDatasetStats, userID, in)
+			},
+		},
+		{
+			Name:               toolMetaGetDatasetQuality,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Returns Dataset Quality API metrics (e.g. EMQ) for a pixel.",
+			Description:        "Calls GET /dataset_quality?dataset_id=.... " + docDatasetQualityNote,
+			InputSchema:        datasetQualitySchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseDatasetQualityInput(params)
+				if err != nil {
+					return nil, err
+				}
+				return svc.getDatasetQuality(ctx, toolMetaGetDatasetQuality, userID, in)
+			},
+		},
+		{
+			Name:               toolMetaGetAdSetActivities,
+			Platform:           platformName,
+			Action:             catalog.ToolActionRead,
+			Summary:            "Returns change history for one Meta ad set.",
+			Description:        "Calls GET /{adset_id}/activities. " + docActivitiesTime,
+			InputSchema:        adSetActivitiesSchema(),
+			RequiresConnection: true,
+			Execute: func(ctx context.Context, userID string, params map[string]any) (any, error) {
+				in, err := parseActivitiesInput(params)
+				if err != nil {
+					return nil, err
+				}
+				adSetID := strings.TrimSpace(toString(params["adset_id"]))
+				return svc.getAdSetActivities(ctx, toolMetaGetAdSetActivities, userID, adSetID, in)
 			},
 		},
 	}

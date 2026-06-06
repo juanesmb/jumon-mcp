@@ -64,6 +64,11 @@ func parseListCreativesInput(params map[string]any) (listCreativesInput, error) 
 	}, nil
 }
 
+func (s *service) listCreativeAds(ctx context.Context, mcpTool, userID string, in listCreativeAdsInput) (any, error) {
+	query := buildListQuery(in.listPaginationInput)
+	return s.graphGETPaginated(ctx, mcpTool, userID, in.creativeID+"/ads", query, in.autoPaginate)
+}
+
 func parseGetCreativeInput(params map[string]any) getCreativeInput {
 	in := getCreativeInput{
 		creativeID: strings.TrimSpace(toString(params["creative_id"])),

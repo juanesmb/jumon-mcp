@@ -185,3 +185,62 @@ var defaultCustomAudienceFields = []string{
 	"rule",
 	"customer_file_source",
 }
+
+var defaultCustomConversionListFields = []string{
+	"id",
+	"name",
+	"custom_event_type",
+	"pixel",
+	"rule",
+	"default_conversion_value",
+	"is_archived",
+}
+
+var defaultDatasetListFields = []string{
+	"id",
+	"name",
+	"creation_time",
+	"last_fired_time",
+	"is_unavailable",
+}
+
+var defaultDatasetFields = []string{
+	"id",
+	"name",
+	"creation_time",
+	"last_fired_time",
+	"is_unavailable",
+	"owner_business",
+	"code",
+}
+
+var defaultActivityFields = []string{
+	"actor_name",
+	"object_type",
+	"translated_event_type",
+	"event_time",
+	"changed_data",
+	"object_id",
+	"object_name",
+}
+
+var defaultCreativeAdListFields = []string{
+	"id",
+	"name",
+	"status",
+	"effective_status",
+	"adset_id",
+	"campaign_id",
+}
+
+var defaultDatasetQualityFields = "web{event_match_quality,event_name}"
+
+var validDemographicClasses = []string{
+	"demographics",
+	"life_events",
+	"industries",
+	"income",
+	"family_statuses",
+	"user_device",
+	"user_os",
+}

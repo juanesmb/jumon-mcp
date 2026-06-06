@@ -12,7 +12,7 @@ alwaysApply: false
 
 ## Tools
 
-26 read tools — see [docs/meta-ads-tools.md](../../docs/meta-ads-tools.md).
+37 read tools — see [docs/meta-ads-tools.md](../../docs/meta-ads-tools.md).
 
 Prefer **`meta_search_ad_entities`** for performance questions (`level: adset|ad`); structure lists + `meta_get_*` for navigation.
 
@@ -28,6 +28,7 @@ Prefer **`meta_search_ad_entities`** for performance questions (`level: adset|ad
 | `accounts.go`, `structure.go`, `insights.go`, `delivery.go`, `pages.go` | Core service methods |
 | `field_context.go`, `field_catalog_data.go` | Embedded field catalog |
 | `creatives.go`, `media.go`, `targeting.go`, `audiences.go`, `intelligence.go` | P3/P4 tools |
+| `measurement.go`, `activities.go` | R1/R2 measurement + audit trail |
 | `graph_errors.go`, `proxy.go` | Error parsing + gateway port (GET + POST form) |
 
 ## Conventions

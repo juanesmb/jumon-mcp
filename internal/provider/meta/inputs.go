@@ -382,3 +382,178 @@ func unmarshalPayload(raw []byte) (any, error) {
 	}
 	return out, nil
 }
+
+type activitiesInput struct {
+	fields    []string
+	timeRange *timeRangeInput
+	since     string
+	until     string
+	limit     int
+	after     string
+	before    string
+}
+
+type listCustomConversionsInput struct {
+	listPaginationInput
+	datasetID string
+}
+
+type getDatasetInput struct {
+	datasetID string
+	fields    []string
+}
+
+type datasetStatsInput struct {
+	datasetID   string
+	startTime   string
+	endTime     string
+	eventName   string
+	eventSource string
+	aggregation string
+}
+
+type datasetQualityInput struct {
+	datasetID string
+	fields    string
+}
+
+type listCreativeAdsInput struct {
+	listPaginationInput
+	creativeID string
+}
+
+type interestSuggestionsInput struct {
+	interestList []string
+	limit        int
+}
+
+func requireDatasetID(raw string) (string, error) {
+	id := strings.TrimSpace(raw)
+	if id == "" {
+		return "", fmt.Errorf("meta: dataset_id is required")
+	}
+	return id, nil
+}
+
+func requireCreativeID(raw string) (string, error) {
+	id := strings.TrimSpace(raw)
+	if id == "" {
+		return "", fmt.Errorf("meta: creative_id is required")
+	}
+	return id, nil
+}
+
+func parseActivitiesInput(params map[string]any) (activitiesInput, error) {
+	in := activitiesInput{
+		fields: toStringSlice(params["fields"]),
+		since:  strings.TrimSpace(toString(params["since"])),
+		until:  strings.TrimSpace(toString(params["until"])),
+		after:  strings.TrimSpace(toString(params["after"])),
+		before: strings.TrimSpace(toString(params["before"])),
+	}
+	if in.fields == nil {
+		in.fields = append([]string(nil), defaultActivityFields...)
+	}
+	if limit, ok := toInt(params["limit"]); ok && limit > 0 {
+		in.limit = clampLimit(limit)
+	} else {
+		in.limit = defaultListLimit
+	}
+	if tr, err := parseTimeRange(params["time_range"]); err != nil {
+		return activitiesInput{}, err
+	} else if tr != nil {
+		in.timeRange = tr
+	}
+	return in, nil
+}
+
+func parseListCustomConversionsInput(params map[string]any) listCustomConversionsInput {
+	return listCustomConversionsInput{
+		listPaginationInput: parseListPagination(params, defaultCustomConversionListFields),
+		datasetID:           strings.TrimSpace(toString(params["dataset_id"])),
+	}
+}
+
+func parseGetDatasetInput(params map[string]any) getDatasetInput {
+	return getDatasetInput{
+		datasetID: strings.TrimSpace(toString(params["dataset_id"])),
+		fields:    toStringSlice(params["fields"]),
+	}
+}
+
+func parseDatasetStatsInput(params map[string]any) (datasetStatsInput, error) {
+	datasetID, err := requireDatasetID(toString(params["dataset_id"]))
+	if err != nil {
+		return datasetStatsInput{}, err
+	}
+	return datasetStatsInput{
+		datasetID:   datasetID,
+		startTime:   strings.TrimSpace(toString(params["start_time"])),
+		endTime:     strings.TrimSpace(toString(params["end_time"])),
+		eventName:   strings.TrimSpace(toString(params["event_name"])),
+		eventSource: strings.TrimSpace(toString(params["event_source"])),
+		aggregation: strings.TrimSpace(toString(params["aggregation"])),
+	}, nil
+}
+
+func parseDatasetQualityInput(params map[string]any) (datasetQualityInput, error) {
+	datasetID, err := requireDatasetID(toString(params["dataset_id"]))
+	if err != nil {
+		return datasetQualityInput{}, err
+	}
+	in := datasetQualityInput{datasetID: datasetID}
+	if fields := toStringSlice(params["fields"]); len(fields) > 0 {
+		in.fields = strings.Join(fields, ",")
+	} else if s := strings.TrimSpace(toString(params["fields"])); s != "" {
+		in.fields = s
+	}
+	return in, nil
+}
+
+func parseListCreativeAdsInput(params map[string]any) (listCreativeAdsInput, error) {
+	creativeID, err := requireCreativeID(toString(params["creative_id"]))
+	if err != nil {
+		return listCreativeAdsInput{}, err
+	}
+	return listCreativeAdsInput{
+		listPaginationInput: parseListPagination(params, defaultCreativeAdListFields),
+		creativeID:          creativeID,
+	}, nil
+}
+
+func parseDemographicClass(params map[string]any) string {
+	class := strings.TrimSpace(toString(params["class"]))
+	if class == "" {
+		return "demographics"
+	}
+	return class
+}
+
+func parseInterestList(params map[string]any) ([]string, error) {
+	list := toStringSlice(params["interest_list"])
+	if len(list) == 0 {
+		return nil, fmt.Errorf("meta: interest_list is required and must contain at least one item")
+	}
+	return list, nil
+}
+
+func parseInterestSuggestionsInput(params map[string]any) (interestSuggestionsInput, error) {
+	list, err := parseInterestList(params)
+	if err != nil {
+		return interestSuggestionsInput{}, err
+	}
+	in := interestSuggestionsInput{interestList: list}
+	if limit, ok := toInt(params["limit"]); ok && limit > 0 {
+		in.limit = clampLimit(limit)
+	} else {
+		in.limit = defaultListLimit
+	}
+	return in, nil
+}
+
+func parseSearchLimit(params map[string]any) int {
+	if limit, ok := toInt(params["limit"]); ok && limit > 0 {
+		return clampLimit(limit)
+	}
+	return defaultListLimit
+}

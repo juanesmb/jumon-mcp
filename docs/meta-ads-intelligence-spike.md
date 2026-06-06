@@ -12,6 +12,10 @@ Spike for official Meta Ads MCP intelligence tools vs Graph API availability for
 | `ads_insights_benchmark` | No stable public Graph equivalent | — | **Deferred** |
 | `ads_insights_anomaly_detection` | No stable public Graph equivalent | — | **Deferred** |
 | `ads_get_business_context` | No Graph read endpoint for ads_read tokens | — | **Deferred** |
+| `ads_list_datasets` / pixel read | `GET /{act_id}/adspixels` | `meta_list_datasets`, `meta_get_dataset` | **Shipped** (R1) |
+| `ads_get_dataset_stats` | `GET /{dataset_id}/stats` | `meta_get_dataset_stats` | **Shipped** (R2) |
+| `ads_get_dataset_quality` | `GET /dataset_quality` | `meta_get_dataset_quality` | **Shipped** (R2) |
+| Custom conversions list | `GET /{act_id}/customconversions` | `meta_list_custom_conversions` | **Shipped** (R1) |
 
 ## Gateway smoke (opportunity score)
 

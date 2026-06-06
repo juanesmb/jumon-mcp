@@ -426,3 +426,164 @@ func opportunityScoreSchema() map[string]any {
 		},
 	}
 }
+
+func listCustomConversionsSchema() map[string]any {
+	props := listPaginationProperties()
+	props["dataset_id"] = map[string]any{
+		"type":        "string",
+		"description": docDatasetID + " Optional filter to conversions tied to one pixel.",
+	}
+	return map[string]any{
+		"type":       "object",
+		"required":   []string{"act_id"},
+		"properties": props,
+	}
+}
+
+func listDatasetsSchema() map[string]any {
+	props := listPaginationProperties()
+	return map[string]any{
+		"type":       "object",
+		"required":   []string{"act_id"},
+		"properties": props,
+	}
+}
+
+func getDatasetSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"dataset_id"},
+		"properties": map[string]any{
+			"dataset_id": map[string]any{"type": "string", "description": docDatasetID},
+			"fields":     map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+		},
+	}
+}
+
+func listCreativeAdsSchema() map[string]any {
+	props := listPaginationProperties()
+	delete(props, "act_id")
+	delete(props, "effective_status")
+	props["creative_id"] = map[string]any{"type": "string", "description": "Meta ad creative id."}
+	return map[string]any{
+		"type":       "object",
+		"required":   []string{"creative_id"},
+		"properties": props,
+	}
+}
+
+func activitiesProperties() map[string]any {
+	return map[string]any{
+		"fields": map[string]any{
+			"type":        "array",
+			"items":       map[string]any{"type": "string"},
+			"description": "Activity log fields (default: actor_name, object_type, translated_event_type, event_time, changed_data).",
+		},
+		"time_range": map[string]any{
+			"type":        "object",
+			"description": docActivitiesTime,
+			"properties": map[string]any{
+				"since": map[string]any{"type": "string"},
+				"until": map[string]any{"type": "string"},
+			},
+		},
+		"since": map[string]any{"type": "string", "description": "Start date YYYY-MM-DD (ignored when time_range is set)."},
+		"until": map[string]any{"type": "string", "description": "End date YYYY-MM-DD (ignored when time_range is set)."},
+		"limit": map[string]any{"type": "integer", "description": "Results per page (default 25, max 100)."},
+		"after":  map[string]any{"type": "string"},
+		"before": map[string]any{"type": "string"},
+	}
+}
+
+func accountActivitiesSchema() map[string]any {
+	props := activitiesProperties()
+	props["act_id"] = actIDProperty()
+	return map[string]any{
+		"type":       "object",
+		"required":   []string{"act_id"},
+		"properties": props,
+	}
+}
+
+func adSetActivitiesSchema() map[string]any {
+	props := activitiesProperties()
+	props["adset_id"] = map[string]any{"type": "string", "description": "Meta ad set id."}
+	return map[string]any{
+		"type":       "object",
+		"required":   []string{"adset_id"},
+		"properties": props,
+	}
+}
+
+func searchBehaviorsSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"properties": map[string]any{
+			"limit": map[string]any{"type": "integer", "description": "Max results (default 25)."},
+		},
+	}
+}
+
+func searchDemographicsSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"properties": map[string]any{
+			"class": map[string]any{
+				"type":        "string",
+				"enum":        validDemographicClasses,
+				"description": docDemographicClass,
+			},
+			"limit": map[string]any{"type": "integer", "description": "Max results (default 25)."},
+		},
+	}
+}
+
+func interestSuggestionsSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"interest_list"},
+		"properties": map[string]any{
+			"interest_list": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": docInterestSuggestions,
+			},
+			"limit": map[string]any{"type": "integer", "description": "Max results (default 25)."},
+		},
+	}
+}
+
+func datasetStatsSchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"dataset_id"},
+		"properties": map[string]any{
+			"dataset_id": map[string]any{"type": "string", "description": docDatasetID},
+			"start_time": map[string]any{"type": "string", "description": "UNIX timestamp start (optional)."},
+			"end_time":   map[string]any{"type": "string", "description": "UNIX timestamp end (optional)."},
+			"event_name": map[string]any{"type": "string", "description": "Filter to one event e.g. Purchase."},
+			"event_source": map[string]any{
+				"type":        "string",
+				"description": "Event source filter e.g. browser, server.",
+			},
+			"aggregation": map[string]any{
+				"type":        "string",
+				"description": "Aggregation type e.g. event_total_counts.",
+			},
+		},
+	}
+}
+
+func datasetQualitySchema() map[string]any {
+	return map[string]any{
+		"type":     "object",
+		"required": []string{"dataset_id"},
+		"properties": map[string]any{
+			"dataset_id": map[string]any{"type": "string", "description": docDatasetID},
+			"fields": map[string]any{
+				"type":        "string",
+				"description": docDatasetQualityNote + " Default: web{event_match_quality,event_name}.",
+			},
+		},
+	}
+}

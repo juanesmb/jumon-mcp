@@ -24,7 +24,7 @@ Workflow: explore → load schemas → execute. See `internal/app/instructions/s
 | `internal/provider/linkedin` | LinkedIn tools (richest: analytics, creatives, lead gen) |
 | `internal/provider/googleads` | Google Ads GAQL tools |
 | `internal/provider/reddit` | Reddit Ads tools |
-| `internal/provider/meta` | Meta Ads tools (26 read tools) |
+| `internal/provider/meta` | Meta Ads tools (37 read tools) |
 | `internal/infrastructure/gateway` | HTTP client → mcp-ads-manager internal API |
 
 ## Key invariants
@@ -49,7 +49,8 @@ See [docs/gateway-contract.md](docs/gateway-contract.md). OAuth + token decrypti
 
 ## Meta Ads docs
 
-- [docs/meta-ads-tools.md](docs/meta-ads-tools.md) — capability matrix (26 read tools)
+- [docs/meta-ads-tools.md](docs/meta-ads-tools.md) — capability matrix (37 read tools)
+- [docs/meta-ads-measurement.md](docs/meta-ads-measurement.md) — pixels, conversions, EMQ ladder
 - [docs/meta-ads-intelligence-spike.md](docs/meta-ads-intelligence-spike.md) — intelligence tool matrix
 - [docs/meta-ads-api-version.md](docs/meta-ads-api-version.md) — Graph API v25.0 policy
 - mcp-ads-manager [docs/meta-ads-oauth.md](https://github.com/jumonintelligence/mcp-ads-manager/blob/main/docs/meta-ads-oauth.md) — OAuth + long-lived tokens
@@ -69,7 +70,7 @@ See [docs/gateway-contract.md](docs/gateway-contract.md). OAuth + token decrypti
 | Tool registration | `internal/app/wire.go`, `internal/provider/registry/registry.go` |
 | Org context (URL only) | `internal/infrastructure/middleware/auth_middleware.go` (OrgIDFromContext), `internal/infrastructure/security/clerk_token_verifier.go` (user id) |
 
-Reference templates: LinkedIn `linkedin_get_campaign_groups`; LinkedIn composite `linkedin_get_budget_pacer_report`; Google curated `google_search_keywords`; Google P2 `google_search_gaql` + `google_get_resource_metadata`; Meta `meta_search_ad_entities` + `meta_list_creatives` + `meta_get_opportunity_score`.
+Reference templates: LinkedIn `linkedin_get_campaign_groups`; LinkedIn composite `linkedin_get_budget_pacer_report`; Google curated `google_search_keywords`; Google P2 `google_search_gaql` + `google_get_resource_metadata`; Meta `meta_search_ad_entities` + `meta_list_datasets` + `meta_get_opportunity_score`.
 
 ## Skills (invoke with @)
 

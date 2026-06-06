@@ -107,3 +107,59 @@ func applyInsightsTimeParams(q map[string]string, in insightsInput) {
 		q["date_preset"] = in.datePreset
 	}
 }
+
+func buildActivitiesQuery(in activitiesInput) map[string]string {
+	q := map[string]string{
+		"fields": joinCSV(in.fields),
+		"limit":  toString(in.limit),
+	}
+	if in.after != "" {
+		q["after"] = in.after
+	}
+	if in.before != "" {
+		q["before"] = in.before
+	}
+	if in.timeRange != nil {
+		q["time_range"] = jsonEncode(in.timeRange)
+	} else {
+		if in.since != "" {
+			q["since"] = in.since
+		}
+		if in.until != "" {
+			q["until"] = in.until
+		}
+	}
+	return q
+}
+
+func buildDatasetStatsQuery(in datasetStatsInput) map[string]string {
+	q := map[string]string{}
+	if in.startTime != "" {
+		q["start_time"] = in.startTime
+	}
+	if in.endTime != "" {
+		q["end_time"] = in.endTime
+	}
+	if in.eventName != "" {
+		q["event_name"] = in.eventName
+	}
+	if in.eventSource != "" {
+		q["event_source"] = in.eventSource
+	}
+	if in.aggregation != "" {
+		q["aggregation"] = in.aggregation
+	}
+	return q
+}
+
+func buildDatasetQualityQuery(in datasetQualityInput) map[string]string {
+	q := map[string]string{
+		"dataset_id": in.datasetID,
+	}
+	fields := in.fields
+	if fields == "" {
+		fields = defaultDatasetQualityFields
+	}
+	q["fields"] = fields
+	return q
+}
