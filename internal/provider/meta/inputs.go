@@ -403,15 +403,6 @@ type getDatasetInput struct {
 	fields    []string
 }
 
-type datasetStatsInput struct {
-	datasetID   string
-	startTime   string
-	endTime     string
-	eventName   string
-	eventSource string
-	aggregation string
-}
-
 type datasetQualityInput struct {
 	datasetID string
 	fields    string
@@ -419,6 +410,7 @@ type datasetQualityInput struct {
 
 type listCreativeAdsInput struct {
 	listPaginationInput
+	actID      string
 	creativeID string
 }
 
@@ -481,21 +473,6 @@ func parseGetDatasetInput(params map[string]any) getDatasetInput {
 	}
 }
 
-func parseDatasetStatsInput(params map[string]any) (datasetStatsInput, error) {
-	datasetID, err := requireDatasetID(toString(params["dataset_id"]))
-	if err != nil {
-		return datasetStatsInput{}, err
-	}
-	return datasetStatsInput{
-		datasetID:   datasetID,
-		startTime:   strings.TrimSpace(toString(params["start_time"])),
-		endTime:     strings.TrimSpace(toString(params["end_time"])),
-		eventName:   strings.TrimSpace(toString(params["event_name"])),
-		eventSource: strings.TrimSpace(toString(params["event_source"])),
-		aggregation: strings.TrimSpace(toString(params["aggregation"])),
-	}, nil
-}
-
 func parseDatasetQualityInput(params map[string]any) (datasetQualityInput, error) {
 	datasetID, err := requireDatasetID(toString(params["dataset_id"]))
 	if err != nil {
@@ -511,22 +488,19 @@ func parseDatasetQualityInput(params map[string]any) (datasetQualityInput, error
 }
 
 func parseListCreativeAdsInput(params map[string]any) (listCreativeAdsInput, error) {
+	actID, err := normalizeActID(toString(params["act_id"]))
+	if err != nil {
+		return listCreativeAdsInput{}, err
+	}
 	creativeID, err := requireCreativeID(toString(params["creative_id"]))
 	if err != nil {
 		return listCreativeAdsInput{}, err
 	}
 	return listCreativeAdsInput{
 		listPaginationInput: parseListPagination(params, defaultCreativeAdListFields),
+		actID:               actID,
 		creativeID:          creativeID,
 	}, nil
-}
-
-func parseDemographicClass(params map[string]any) string {
-	class := strings.TrimSpace(toString(params["class"]))
-	if class == "" {
-		return "demographics"
-	}
-	return class
 }
 
 func parseInterestList(params map[string]any) ([]string, error) {
@@ -549,11 +523,4 @@ func parseInterestSuggestionsInput(params map[string]any) (interestSuggestionsIn
 		in.limit = defaultListLimit
 	}
 	return in, nil
-}
-
-func parseSearchLimit(params map[string]any) int {
-	if limit, ok := toInt(params["limit"]); ok && limit > 0 {
-		return clampLimit(limit)
-	}
-	return defaultListLimit
 }

@@ -132,26 +132,6 @@ func buildActivitiesQuery(in activitiesInput) map[string]string {
 	return q
 }
 
-func buildDatasetStatsQuery(in datasetStatsInput) map[string]string {
-	q := map[string]string{}
-	if in.startTime != "" {
-		q["start_time"] = in.startTime
-	}
-	if in.endTime != "" {
-		q["end_time"] = in.endTime
-	}
-	if in.eventName != "" {
-		q["event_name"] = in.eventName
-	}
-	if in.eventSource != "" {
-		q["event_source"] = in.eventSource
-	}
-	if in.aggregation != "" {
-		q["aggregation"] = in.aggregation
-	}
-	return q
-}
-
 func buildDatasetQualityQuery(in datasetQualityInput) map[string]string {
 	q := map[string]string{
 		"dataset_id": in.datasetID,

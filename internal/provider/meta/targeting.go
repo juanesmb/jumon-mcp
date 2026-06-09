@@ -6,34 +6,11 @@ import (
 	"strings"
 )
 
-func (s *service) searchBehaviors(ctx context.Context, mcpTool, userID string, limit int) (any, error) {
-	return s.searchTargetingCategory(ctx, mcpTool, userID, "behaviors", limit)
-}
-
-func (s *service) searchDemographics(ctx context.Context, mcpTool, userID, class string, limit int) (any, error) {
-	return s.searchTargetingCategory(ctx, mcpTool, userID, class, limit)
-}
-
 func (s *service) getInterestSuggestions(ctx context.Context, mcpTool, userID string, in interestSuggestionsInput) (any, error) {
 	query := map[string]string{
 		"type":          "adinterestsuggestion",
 		"interest_list": jsonEncode(in.interestList),
 		"limit":         toString(in.limit),
-	}
-	raw, err := s.proxy.getWithRefresh(ctx, mcpTool, userID, "search", query)
-	if err != nil {
-		return nil, err
-	}
-	return unmarshalPayload(raw)
-}
-
-func (s *service) searchTargetingCategory(ctx context.Context, mcpTool, userID, class string, limit int) (any, error) {
-	query := map[string]string{
-		"type":  "adTargetingCategory",
-		"class": class,
-	}
-	if limit > 0 {
-		query["limit"] = toString(limit)
 	}
 	raw, err := s.proxy.getWithRefresh(ctx, mcpTool, userID, "search", query)
 	if err != nil {

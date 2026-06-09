@@ -12,7 +12,7 @@ alwaysApply: false
 
 ## Tools
 
-37 read tools — see [docs/meta-ads-tools.md](../../docs/meta-ads-tools.md).
+34 read tools — see [docs/meta-ads-tools.md](../../docs/meta-ads-tools.md).
 
 Prefer **`meta_search_ad_entities`** for performance questions (`level: adset|ad`); structure lists + `meta_get_*` for navigation.
 
@@ -45,3 +45,4 @@ Prefer **`meta_search_ad_entities`** for performance questions (`level: adset|ad
 - Expose top-level MCP tools (register in internal registry only).
 - Add Meta-specific gateway routes.
 - Ship Ad Library tools (`ads_archive`).
+- Register `meta_search_behaviors`, `meta_search_demographics`, or `meta_get_dataset_stats` until `ads_read` Advanced Access is approved (see Paused tools in meta-ads-tools.md).

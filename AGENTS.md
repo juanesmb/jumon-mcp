@@ -24,7 +24,7 @@ Workflow: explore → load schemas → execute. See `internal/app/instructions/s
 | `internal/provider/linkedin` | LinkedIn tools (richest: analytics, creatives, lead gen) |
 | `internal/provider/googleads` | Google Ads GAQL tools |
 | `internal/provider/reddit` | Reddit Ads tools |
-| `internal/provider/meta` | Meta Ads tools (37 read tools) |
+| `internal/provider/meta` | Meta Ads tools (34 read tools) |
 | `internal/infrastructure/gateway` | HTTP client → mcp-ads-manager internal API |
 
 ## Key invariants
@@ -49,7 +49,7 @@ See [docs/gateway-contract.md](docs/gateway-contract.md). OAuth + token decrypti
 
 ## Meta Ads docs
 
-- [docs/meta-ads-tools.md](docs/meta-ads-tools.md) — capability matrix (37 read tools)
+- [docs/meta-ads-tools.md](docs/meta-ads-tools.md) — capability matrix (34 read tools; 3 paused pending `ads_read` Advanced Access)
 - [docs/meta-ads-measurement.md](docs/meta-ads-measurement.md) — pixels, conversions, EMQ ladder
 - [docs/meta-ads-intelligence-spike.md](docs/meta-ads-intelligence-spike.md) — intelligence tool matrix
 - [docs/meta-ads-api-version.md](docs/meta-ads-api-version.md) — Graph API v25.0 policy

@@ -23,13 +23,11 @@ const (
 
 	docDatasetID = "Meta pixel/dataset id (numeric). Same value returned by meta_list_datasets."
 
-	docMeasurementWorkflow = "Measurement ladder: meta_list_datasets → meta_get_dataset → meta_list_custom_conversions; signal health via meta_get_dataset_stats / meta_get_dataset_quality."
+	docMeasurementWorkflow = "Measurement ladder: meta_list_datasets → meta_get_dataset → meta_list_custom_conversions; signal health via meta_get_dataset_quality (last_fired_time on meta_get_dataset for firing status)."
 
 	docActivitiesTime = "time_range overrides since/until. Default Graph window is ~1 week when no dates are set."
 
 	docInterestSuggestions = "Pass interest_list as seed names (e.g. [\"Basketball\"]); returns related interests for targeting research."
-
-	docDemographicClass = "Targeting category class. Default demographics. Also: life_events, industries, income, family_statuses, user_device, user_os."
 
 	docDatasetQualityNote = "Dataset Quality API returns EMQ and coverage for a pixel. Requires ads_read on the connected user token."
 )

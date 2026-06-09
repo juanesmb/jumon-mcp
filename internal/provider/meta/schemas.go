@@ -462,12 +462,11 @@ func getDatasetSchema() map[string]any {
 
 func listCreativeAdsSchema() map[string]any {
 	props := listPaginationProperties()
-	delete(props, "act_id")
 	delete(props, "effective_status")
 	props["creative_id"] = map[string]any{"type": "string", "description": "Meta ad creative id."}
 	return map[string]any{
 		"type":       "object",
-		"required":   []string{"creative_id"},
+		"required":   []string{"act_id", "creative_id"},
 		"properties": props,
 	}
 }
@@ -515,29 +514,6 @@ func adSetActivitiesSchema() map[string]any {
 	}
 }
 
-func searchBehaviorsSchema() map[string]any {
-	return map[string]any{
-		"type":     "object",
-		"properties": map[string]any{
-			"limit": map[string]any{"type": "integer", "description": "Max results (default 25)."},
-		},
-	}
-}
-
-func searchDemographicsSchema() map[string]any {
-	return map[string]any{
-		"type":     "object",
-		"properties": map[string]any{
-			"class": map[string]any{
-				"type":        "string",
-				"enum":        validDemographicClasses,
-				"description": docDemographicClass,
-			},
-			"limit": map[string]any{"type": "integer", "description": "Max results (default 25)."},
-		},
-	}
-}
-
 func interestSuggestionsSchema() map[string]any {
 	return map[string]any{
 		"type":     "object",
@@ -549,27 +525,6 @@ func interestSuggestionsSchema() map[string]any {
 				"description": docInterestSuggestions,
 			},
 			"limit": map[string]any{"type": "integer", "description": "Max results (default 25)."},
-		},
-	}
-}
-
-func datasetStatsSchema() map[string]any {
-	return map[string]any{
-		"type":     "object",
-		"required": []string{"dataset_id"},
-		"properties": map[string]any{
-			"dataset_id": map[string]any{"type": "string", "description": docDatasetID},
-			"start_time": map[string]any{"type": "string", "description": "UNIX timestamp start (optional)."},
-			"end_time":   map[string]any{"type": "string", "description": "UNIX timestamp end (optional)."},
-			"event_name": map[string]any{"type": "string", "description": "Filter to one event e.g. Purchase."},
-			"event_source": map[string]any{
-				"type":        "string",
-				"description": "Event source filter e.g. browser, server.",
-			},
-			"aggregation": map[string]any{
-				"type":        "string",
-				"description": "Aggregation type e.g. event_total_counts.",
-			},
 		},
 	}
 }

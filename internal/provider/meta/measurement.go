@@ -35,19 +35,6 @@ func (s *service) getDataset(ctx context.Context, mcpTool, userID string, in get
 	return s.getNode(ctx, mcpTool, userID, datasetID, in.fields, defaultDatasetFields)
 }
 
-func (s *service) getDatasetStats(ctx context.Context, mcpTool, userID string, in datasetStatsInput) (any, error) {
-	datasetID, err := requireDatasetID(in.datasetID)
-	if err != nil {
-		return nil, err
-	}
-	query := buildDatasetStatsQuery(in)
-	raw, err := s.proxy.getWithRefresh(ctx, mcpTool, userID, datasetID+"/stats", query)
-	if err != nil {
-		return nil, err
-	}
-	return unmarshalPayload(raw)
-}
-
 func (s *service) getDatasetQuality(ctx context.Context, mcpTool, userID string, in datasetQualityInput) (any, error) {
 	datasetID, err := requireDatasetID(in.datasetID)
 	if err != nil {

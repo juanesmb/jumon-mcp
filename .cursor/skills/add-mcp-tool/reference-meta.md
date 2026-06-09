@@ -27,8 +27,8 @@
 2. Prefer **`meta_search_ad_entities`** for performance; **`meta_get_field_context`** before filter/sort
 3. Structure: `meta_list_campaigns` → `meta_list_ad_sets` → `meta_list_ads`
 4. Creatives: `meta_list_creatives` → `meta_get_creative` / `meta_get_ad_preview`
-5. Targeting: `meta_search_interests` → `meta_search_behaviors` / `meta_search_demographics` → `meta_get_interest_suggestions` → `meta_estimate_audience_size`
-6. Measurement: `meta_list_datasets` → `meta_get_dataset` → `meta_list_custom_conversions`; `meta_get_dataset_stats` / `meta_get_dataset_quality`
+5. Targeting: `meta_search_interests` → `meta_get_interest_suggestions` → `meta_estimate_audience_size` (behaviors/demographics browse paused until `ads_read` Advanced Access)
+6. Measurement: `meta_list_datasets` → `meta_get_dataset` → `meta_list_custom_conversions`; `meta_get_dataset_quality` + `last_fired_time` on `meta_get_dataset`
 7. Audit: `meta_get_account_activities` or `meta_get_ad_set_activities`
 8. Optimization: `meta_get_opportunity_score` (account-level only)
 
@@ -57,13 +57,10 @@
 | `meta_list_datasets` | `{act_id}/adspixels` |
 | `meta_get_dataset` | `{dataset_id}` |
 | `meta_list_custom_conversions` | `{act_id}/customconversions` |
-| `meta_get_dataset_stats` | `{dataset_id}/stats` |
 | `meta_get_dataset_quality` | `dataset_quality?dataset_id=...` |
-| `meta_list_creative_ads` | `{creative_id}/ads` |
+| `meta_list_creative_ads` | `{act_id}/ads` (client-side match on `creative.id`) |
 | `meta_get_account_activities` | `{act_id}/activities` |
 | `meta_get_ad_set_activities` | `{adset_id}/activities` |
-| `meta_search_behaviors` | `search?type=adTargetingCategory&class=behaviors` |
-| `meta_search_demographics` | `search?type=adTargetingCategory&class={class}` |
 | `meta_get_interest_suggestions` | `search?type=adinterestsuggestion&interest_list=...` |
 
 ## Docs

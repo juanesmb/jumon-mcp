@@ -37,8 +37,8 @@ Meta (Facebook, Instagram, and other placements) uses one Marketing API. Connect
 4. **Delivery issues:** `meta_get_delivery_errors` with campaign/ad set/ad ids when ads are not delivering (uses Graph Batch for multiple ids).
 5. **Lead Gen / Pages:** `meta_list_account_pages` — optional `act_id` for promote_pages; check `leadgen_tos_accepted` before Lead Gen work.
 6. **Creatives / media:** `meta_list_creatives`, `meta_get_creative`, `meta_get_ad_images`, `meta_get_ad_videos`, `meta_get_ad_preview`.
-7. **Targeting / audiences:** `meta_search_interests` → `meta_search_behaviors` / `meta_search_demographics` → `meta_get_interest_suggestions` → `meta_estimate_audience_size`; `meta_list_custom_audiences` → `meta_get_custom_audience`.
-8. **Measurement:** `meta_list_datasets` → `meta_get_dataset` → `meta_list_custom_conversions`; signal health via `meta_get_dataset_stats` / `meta_get_dataset_quality`.
+7. **Targeting / audiences:** `meta_search_interests` → `meta_get_interest_suggestions` → `meta_estimate_audience_size`; `meta_list_custom_audiences` → `meta_get_custom_audience`. Do not use behaviors/demographics browse tools — paused until `ads_read` Advanced Access.
+8. **Measurement:** `meta_list_datasets` → `meta_get_dataset` → `meta_list_custom_conversions`; signal health via `meta_get_dataset_quality` and `last_fired_time` on `meta_get_dataset`.
 9. **Audit:** `meta_get_account_activities` (account) or `meta_get_ad_set_activities` (one ad set).
 10. **Creative governance:** `meta_list_creatives` → `meta_list_creative_ads`.
 11. **Optimization:** `meta_get_opportunity_score` for account-level recommendations (not per-campaign).

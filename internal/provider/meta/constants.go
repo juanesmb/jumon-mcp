@@ -231,16 +231,7 @@ var defaultCreativeAdListFields = []string{
 	"effective_status",
 	"adset_id",
 	"campaign_id",
+	"creative",
 }
 
 var defaultDatasetQualityFields = "web{event_match_quality,event_name}"
-
-var validDemographicClasses = []string{
-	"demographics",
-	"life_events",
-	"industries",
-	"income",
-	"family_statuses",
-	"user_device",
-	"user_os",
-}
