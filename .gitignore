@@ -1,3 +1,9 @@
 .idea/*
 
 .gcloud/*
+
+tmp/
+.env
+.env.local
+.env.*
+!.env.example

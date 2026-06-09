@@ -1,0 +1,15 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o ./tmp/jumon-mcp ./cmd/jumon-mcp"
+  entrypoint = "./tmp/jumon-mcp"
+  include_ext = ["go", "mod", "sum"]
+  exclude_dir = ["tmp", "vendor", ".git", "docs"]
+  delay = 1000
+  send_interrupt = true
+  kill_delay = 500
+
+[env]
+  PORT = "8080"
+  OBSERVABILITY_ENABLED = "false"

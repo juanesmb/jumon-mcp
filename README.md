@@ -44,8 +44,20 @@ After traffic, validate **Structured JSON logs** in Cloud Logging (`event=http_r
 
 ## Run locally
 
+**Recommended (hot reload):** see [docs/local-dev-env.md](docs/local-dev-env.md).
+
 ```bash
-go run ./cmd/jumon-mcp
+go install github.com/air-verse/air@latest
+cp .env.example .env   # paste env vars; never commit .env
+./scripts/dev.sh       # loads .env → air → http://localhost:8080
+```
+
+If `air: not found`, install with the command above; `dev.sh` resolves `~/go/bin/air` automatically.
+
+**One-shot (no reload):**
+
+```bash
+set -a && source .env && set +a && go run ./cmd/jumon-mcp
 ```
 
 ## Verification
